@@ -154,6 +154,7 @@ export type StdcmSimulation = {
 export type StdcmConfigCardProps = {
   disabled?: boolean;
   consistErrors?: ConsistErrors;
+  isDebugMode?: boolean;
 };
 
 export enum ArrivalTimeTypes {

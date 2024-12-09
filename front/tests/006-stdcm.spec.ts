@@ -23,23 +23,19 @@ test.describe('Verify stdcm simulation page', () => {
     tractionEngine: electricRollingStockName,
     tonnage: '950',
     length: '567',
-    maxSpeed: '180',
     speedLimitTag: 'HLP',
   };
   const tractionEnginePrefilledValues = {
     tonnage: '900',
     length: '400',
-    maxSpeed: '288',
   };
   const fastRollingStockPrefilledValues = {
     tonnage: '190',
     length: '46',
-    maxSpeed: '220',
   };
   const towedRollingStockPrefilledValues = {
     tonnage: '46',
     length: '26',
-    maxSpeed: '180',
   };
 
   test.beforeAll('Fetch infrastructure', async () => {
@@ -73,8 +69,7 @@ test.describe('Verify stdcm simulation page', () => {
     await stdcmPage.fillAndVerifyConsistDetails(
       consistDetails,
       tractionEnginePrefilledValues.tonnage,
-      tractionEnginePrefilledValues.length,
-      tractionEnginePrefilledValues.maxSpeed
+      tractionEnginePrefilledValues.length
     );
     await stdcmPage.fillAndVerifyOriginDetails();
     await stdcmPage.fillAndVerifyDestinationDetails();
@@ -103,10 +98,8 @@ test.describe('Verify stdcm simulation page', () => {
       towedConsistDetails,
       fastRollingStockPrefilledValues.tonnage,
       fastRollingStockPrefilledValues.length,
-      fastRollingStockPrefilledValues.maxSpeed,
       towedRollingStockPrefilledValues.tonnage,
-      towedRollingStockPrefilledValues.length,
-      towedRollingStockPrefilledValues.maxSpeed
+      towedRollingStockPrefilledValues.length
     );
     await stdcmPage.fillOriginDetailsLight();
     await stdcmPage.fillDestinationDetailsLight();

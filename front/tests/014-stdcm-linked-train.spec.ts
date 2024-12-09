@@ -56,10 +56,8 @@ test.describe('Verify stdcm simulation page', () => {
       towedConsistDetails,
       fastRollingStockPrefilledValues.tonnage,
       fastRollingStockPrefilledValues.length,
-      fastRollingStockPrefilledValues.maxSpeed,
       towedRollingStockPrefilledValues.tonnage,
-      towedRollingStockPrefilledValues.length,
-      towedRollingStockPrefilledValues.maxSpeed
+      towedRollingStockPrefilledValues.length
     );
     await stdcmLinkedTrainPage.anteriorLinkedPathDetails();
     await stdcmPage.fillAndVerifyViaDetails({
@@ -81,10 +79,8 @@ test.describe('Verify stdcm simulation page', () => {
       towedConsistDetails,
       fastRollingStockPrefilledValues.tonnage,
       fastRollingStockPrefilledValues.length,
-      fastRollingStockPrefilledValues.maxSpeed,
       towedRollingStockPrefilledValues.tonnage,
-      towedRollingStockPrefilledValues.length,
-      towedRollingStockPrefilledValues.maxSpeed
+      towedRollingStockPrefilledValues.length
     );
     await stdcmLinkedTrainPage.posteriorLinkedPathDetails();
     await stdcmPage.fillAndVerifyViaDetails({

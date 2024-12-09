@@ -8,7 +8,8 @@ export const DEFAULT_DETAILS = {
   arrivalDate: '17/10/24',
   arrivalTime: '00:00',
   tolerance: '-30/+30',
-  speedLimitTag: '__PLACEHOLDER__', // value = None
+  speedLimitTag: 'MA100',
+  maxSpeed: '100',
 };
 
 export const ORIGIN_DETAILS = {

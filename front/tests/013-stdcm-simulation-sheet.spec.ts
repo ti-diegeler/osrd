@@ -25,7 +25,7 @@ test.describe('Verify stdcm simulation page', () => {
     tractionEngine: electricRollingStockName,
     tonnage: '950',
     length: '567',
-    maxSpeed: '180',
+    maxSpeed: '100',
     speedLimitTag: 'HLP',
   };
   const tractionEnginePrefilledValues = {

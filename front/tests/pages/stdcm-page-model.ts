@@ -331,6 +331,7 @@ class STDCMPage extends HomePage {
   }
 
   // Verify all input fields are empty
+  // Except for speedLimitTags, which has a default value of 'MA100'
   async verifyAllDefaultPageFields() {
     const emptyFields = [
       this.tractionEngineField,
@@ -383,18 +384,15 @@ class STDCMPage extends HomePage {
     consistFields: ConsistFields,
     tractionEngineTonnage: string,
     tractionEngineLength: string,
-    tractionEngineMaxSpeed: string,
     towedRollingStockTonnage?: string,
-    towedRollingStockLength?: string,
-    towedRollingStockMaxSpeed?: string
+    towedRollingStockLength?: string
   ): Promise<void> {
-    const { tractionEngine, towedRollingStock, tonnage, length, maxSpeed, speedLimitTag } =
-      consistFields;
+    const { tractionEngine, towedRollingStock, tonnage, length, speedLimitTag } = consistFields;
 
     // Generic utility for handling dropdown selection and value verification
     const handleAndVerifyDropdown = async (
       dropdownField: Locator,
-      expectedValues: { expectedTonnage: string; expectedLength: string; expectedMaxSpeed: string },
+      expectedValues: { expectedTonnage: string; expectedLength: string },
       selectedValue?: string
     ) => {
       if (!selectedValue) return;
@@ -405,16 +403,16 @@ class STDCMPage extends HomePage {
       await dropdownField.dispatchEvent('blur');
       await expect(dropdownField).toHaveValue(selectedValue);
 
-      const { expectedTonnage, expectedLength, expectedMaxSpeed } = expectedValues;
+      const { expectedTonnage, expectedLength } = expectedValues;
       await expect(this.tonnageField).toHaveValue(expectedTonnage);
       await expect(this.lengthField).toHaveValue(expectedLength);
-      await expect(this.maxSpeedField).toHaveValue(expectedMaxSpeed);
+      await expect(this.maxSpeedField).toHaveValue(DEFAULT_DETAILS.maxSpeed);
     };
 
     // Utility to calculate prefilled values for towed rolling stock
     const calculateTowedPrefilledValues = () => {
-      if (!towedRollingStockTonnage || !towedRollingStockLength || !towedRollingStockMaxSpeed) {
-        return { expectedTonnage: '0', expectedLength: '0', expectedMaxSpeed: '0' };
+      if (!towedRollingStockTonnage || !towedRollingStockLength) {
+        return { expectedTonnage: '0', expectedLength: '0' };
       }
 
       return {
@@ -423,10 +421,6 @@ class STDCMPage extends HomePage {
         ).toString(),
         expectedLength: (
           parseFloat(towedRollingStockLength) + parseFloat(tractionEngineLength)
-        ).toString(),
-        expectedMaxSpeed: Math.min(
-          parseFloat(towedRollingStockMaxSpeed),
-          parseFloat(tractionEngineMaxSpeed)
         ).toString(),
       };
     };
@@ -440,7 +434,6 @@ class STDCMPage extends HomePage {
       {
         expectedTonnage: tractionEngineTonnage,
         expectedLength: tractionEngineLength,
-        expectedMaxSpeed: tractionEngineMaxSpeed,
       },
       tractionEngine
     );
@@ -455,7 +448,7 @@ class STDCMPage extends HomePage {
     // Fill and verify individual fields
     await handleAndVerifyInput(this.tonnageField, tonnage);
     await handleAndVerifyInput(this.lengthField, length);
-    await handleAndVerifyInput(this.maxSpeedField, maxSpeed);
+    await handleAndVerifyInput(this.maxSpeedField, DEFAULT_DETAILS.maxSpeed);
 
     // Handle optional speed limit tag
     if (speedLimitTag) {
