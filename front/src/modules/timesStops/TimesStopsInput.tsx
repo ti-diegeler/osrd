@@ -9,7 +9,10 @@ import { useScenarioContext } from 'applications/operationalStudies/hooks/useSce
 import { useOsrdConfActions } from 'common/osrdContext';
 import { isVia, matchPathStepAndOp } from 'modules/pathfinding/utils';
 import type { SuggestedOP } from 'modules/trainschedule/components/ManageTrainSchedule/types';
-import type { OperationalStudiesConfSliceActions } from 'reducers/osrdconf/operationalStudiesConf';
+import {
+  updatePathSteps,
+  type OperationalStudiesConfSliceActions,
+} from 'reducers/osrdconf/operationalStudiesConf';
 import type { PathStep } from 'reducers/osrdconf/types';
 import { useAppDispatch } from 'store';
 import { Duration } from 'utils/duration';
@@ -73,7 +76,7 @@ const TimesStopsInput = ({
 }: TimesStopsInputProps) => {
   const dispatch = useAppDispatch();
   const { t } = useTranslation('timesStops');
-  const { updatePathSteps, upsertSeveralViasFromSuggestedOP } =
+  const { upsertSeveralViasFromSuggestedOP } =
     useOsrdConfActions() as OperationalStudiesConfSliceActions;
 
   const [rows, setRows] = useState<TimesStopsInputRow[]>([]);
