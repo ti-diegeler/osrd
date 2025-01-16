@@ -15,8 +15,10 @@ import {
   VIA_STOP_TIMES,
   VIA_STOP_TYPES,
 } from '../assets/stdcm-const';
-import { logger } from '../test-logger';
-import { handleAndVerifyInput, readJsonFile } from '../utils';
+import { logger } from '../logging-fixture';
+import { getTranslations, handleAndVerifyInput, readJsonFile } from '../utils';
+import HomePage from './home-page-model';
+import type { ConsistFields } from '../utils/types';
 
 interface TableRow {
   index: number;
@@ -29,20 +31,9 @@ interface TableRow {
   refEngine: string | null;
 }
 
-export interface ConsistFields {
-  tractionEngine: string;
-  towedRollingStock?: string;
-  tonnage?: string;
-  length?: string;
-  maxSpeed?: string;
-  speedLimitTag?: string;
-}
-
 const MINIMUM_SIMULATION_NUMBER = 1;
 
-class STDCMPage {
-  readonly page: Page;
-
+class STDCMPage extends HomePage {
   readonly debugButton: Locator;
 
   readonly notificationHeader: Locator;
@@ -174,7 +165,7 @@ class STDCMPage {
   readonly helpButton: Locator;
 
   constructor(page: Page) {
-    this.page = page;
+    super(page);
     this.notificationHeader = page.locator('#notification');
     this.debugButton = page.getByTestId('stdcm-debug-button');
     this.helpButton = page.getByTestId('stdcm-help-button');
@@ -507,8 +498,8 @@ class STDCMPage {
     await expect(this.toleranceOriginArrival).not.toBeVisible();
   }
 
-  // Fill and verify destination details based on selected language
-  async fillAndVerifyDestinationDetails(selectedLanguage: string) {
+  // Fill and verify destination details
+  async fillAndVerifyDestinationDetails() {
     const {
       input,
       suggestion,
@@ -519,7 +510,10 @@ class STDCMPage {
       arrivalType,
       updatedDetails,
     } = DESTINATION_DETAILS;
-    const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
     // Fill destination input and verify suggestions
     await this.dynamicDestinationCi.fill(input);
     await this.verifyDestinationSouthSuggestions();
@@ -599,15 +593,16 @@ class STDCMPage {
   async fillAndVerifyViaDetails({
     viaNumber,
     ciSearchText,
-    language,
   }: {
     viaNumber: number;
     ciSearchText: string;
-    language?: string;
   }): Promise<void> {
     const { PASSAGE_TIME, SERVICE_STOP, DRIVER_SWITCH } = VIA_STOP_TYPES;
     const { serviceStop, driverSwitch } = VIA_STOP_TIMES;
-    const translations = language === 'English' ? enTranslations : frTranslations;
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
     const warning = this.getViaWarning(viaNumber);
     // Helper function to fill common fields
     const fillVia = async (selectedSuggestion: Locator) => {
@@ -779,15 +774,16 @@ class STDCMPage {
   }
 
   async verifySimulationDetails({
-    language,
     simulationNumber,
     simulationLengthAndDuration,
   }: {
-    language: string;
     simulationNumber: number;
     simulationLengthAndDuration?: string | null;
   }): Promise<void> {
-    const translations = language === 'English' ? enTranslations : frTranslations;
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
     const noCapacityLengthAndDuration = '— ';
     // Determine expected simulation name
     const isResultTableVisible = await this.simulationResultTable.isVisible();

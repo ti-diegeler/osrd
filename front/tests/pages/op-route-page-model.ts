@@ -2,6 +2,7 @@ import { expect, type Locator, type Page } from '@playwright/test';
 
 import enTranslations from '../../public/locales/en/operationalStudies/manageTrainSchedule.json';
 import frTranslations from '../../public/locales/fr/operationalStudies/manageTrainSchedule.json';
+import { getTranslations } from '../utils';
 import { clickWithDelay } from '../utils';
 
 class RoutePage {
@@ -153,9 +154,12 @@ class RoutePage {
     await this.deleteItineraryButton.click();
   }
 
-  // Verify that no route is selected and displays appropriate messages based on language.
-  async verifyNoSelectedRoute(selectedLanguage: string) {
-    const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
+  // Verify that no route is selected and displays appropriate messages.
+  async verifyNoSelectedRoute() {
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
     const isNoOriginChosenVisible = await this.noOriginChosen.isVisible();
     const isNoDestinationChosenVisible = await this.noDestinationChosen.isVisible();
 
@@ -206,7 +210,7 @@ class RoutePage {
   }
 
   // Click the buttons to delete origin, destination, and via waypoints and verifies missing parameters message.
-  async clickOnDeleteOPButtons(selectedLanguage: string) {
+  async clickOnDeleteOPButtons() {
     // Ensure all buttons are rendered and visible before proceeding
     await Promise.all([
       this.viaDeleteButton.waitFor({ state: 'visible' }),
@@ -218,7 +222,10 @@ class RoutePage {
     await clickWithDelay(this.viaDeleteButton);
     await clickWithDelay(this.originDeleteButton);
     await clickWithDelay(this.destinationDeleteButton);
-    const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
     const expectedMessage = translations.pathfindingMissingParams.replace(
       ': {{missingElements}}.',
       ''

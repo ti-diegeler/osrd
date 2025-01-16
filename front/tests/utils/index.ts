@@ -4,7 +4,7 @@ import { type Locator, type Page, expect } from '@playwright/test';
 import { v4 as uuidv4 } from 'uuid';
 
 import { getInfraById } from './api-setup';
-import { logger } from '../test-logger';
+import { logger } from '../logging-fixture';
 
 /**
  * Fill the input field identified by ID or TestID with the specified value and verifies it.
@@ -89,6 +89,7 @@ export async function clickWithDelay(element: Locator, delay = 500): Promise<voi
   await element.click();
   await element.page().waitForTimeout(delay);
 }
+
 /**
  * Generic function to handle input fields.
  *
@@ -103,22 +104,7 @@ export async function handleAndVerifyInput(inputField: Locator, value?: string):
     await expect(inputField).toHaveValue(value);
   }
 }
-/**
- * Convert a date string from YYYY-MM-DD format to "DD mmm YYYY" format.
- * @param dateString - The input date string in YYYY-MM-DD format.
- * @param OSRDLanguage - The current language of the application
- * @returns The formatted date string in "DD mmm YYYY" format.
- */
-export function formatDateToDayMonthYear(dateString: string, OSRDLanguage: string): string {
-  const locale = OSRDLanguage === 'English' ? 'en-GB' : 'fr-FR';
-  const date = new Date(dateString);
-  const formattedDate = date.toLocaleDateString(locale, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-  return formattedDate.replace('.', '');
-}
+
 /**
  * Waits until the infrastructure state becomes 'CACHED' before proceeding to the next step.
  * The function polls the `infra.state` every 10 seconds, up to a total of 3 minutes.
@@ -186,5 +172,26 @@ export async function performOnSpecificOSAndBrowser(
     await action();
   } else {
     console.info(skipMessage);
+  }
+}
+
+/**
+ * Utility function to get translations based on the project language.
+ *
+ * @param {string} projectLanguage - The language of the project
+ * @param {{ en: T; fr: T }} translations - An object containing translations for English and French.
+ * @returns {T} - The translation object corresponding to the specified project language.
+ * @throws {Error} - Throws an error if the project language is unsupported.
+ */
+
+export function getTranslations<T>(translations: { en: T; fr: T }): T {
+  const projectLanguage = process.env.PROJECT_LANGUAGE;
+  switch (projectLanguage) {
+    case 'Français':
+      return translations.fr;
+    case 'English':
+      return translations.en;
+    default:
+      throw new Error(`Unsupported project language: "${projectLanguage}".`);
   }
 }

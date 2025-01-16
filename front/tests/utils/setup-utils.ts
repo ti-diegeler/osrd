@@ -28,7 +28,7 @@ import {
   trainScheduleScenarioName,
   trainScheduleStudyName,
 } from '../assets/project-const';
-import { logger } from '../test-logger';
+import { logger } from '../logging-fixture';
 import { createDateInSpecialTimeZone } from './date';
 
 /**

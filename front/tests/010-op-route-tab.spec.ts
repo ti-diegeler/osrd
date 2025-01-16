@@ -1,11 +1,10 @@
 import type { Infra, Project, Scenario, Study } from 'common/api/osrdEditoastApi';
 
 import { electricRollingStockName } from './assets/project-const';
-import HomePage from './pages/home-page-model';
+import test from './logging-fixture';
 import RoutePage from './pages/op-route-page-model';
 import OperationalStudiesPage from './pages/operational-studies-page-model';
 import RollingStockSelectorPage from './pages/rollingstock-selector-page-model';
-import test from './test-logger';
 import { waitForInfraStateToBeCached } from './utils';
 import { getInfra } from './utils/api-setup';
 import createScenario from './utils/scenario';
@@ -13,10 +12,13 @@ import { deleteScenario } from './utils/teardown-utils';
 
 test.describe('Route Tab Verification', () => {
   test.slow();
+
+  let operationalStudiesPage: OperationalStudiesPage;
+  let rollingstockSelectorPage: RollingStockSelectorPage;
+  let routePage: RoutePage;
   let project: Project;
   let study: Study;
   let scenario: Scenario;
-  let OSRDLanguage: string;
   let infra: Infra;
 
   test.beforeAll('Set up the scenario', async () => {
@@ -31,14 +33,11 @@ test.describe('Route Tab Verification', () => {
   test.beforeEach(
     'Navigate to the scenario page and select the rolling stock before each test',
     async ({ page }) => {
-      const [operationalStudiesPage, rollingstockSelectorPage, homePage] = [
+      [operationalStudiesPage, rollingstockSelectorPage, routePage] = [
         new OperationalStudiesPage(page),
         new RollingStockSelectorPage(page),
-        new HomePage(page),
+        new RoutePage(page),
       ];
-
-      await homePage.goToHomePage();
-      OSRDLanguage = await homePage.getOSRDLanguage();
 
       await page.goto(
         `/operational-studies/projects/${project.id}/studies/${study.id}/scenarios/${scenario.id}`
@@ -58,12 +57,9 @@ test.describe('Route Tab Verification', () => {
   );
 
   /** *************** Test 1 **************** */
-  test('Select a route for operational study', async ({ page, browserName }) => {
-    const operationalStudiesPage = new OperationalStudiesPage(page);
-    const routePage = new RoutePage(page);
-
+  test('Select a route for operational study', async ({ browserName }) => {
     // Verify that no route is initially selected
-    await routePage.verifyNoSelectedRoute(OSRDLanguage);
+    await routePage.verifyNoSelectedRoute();
 
     // Perform pathfinding by station trigrams and verify map markers in Chromium
     await routePage.performPathfindingByTrigram('WS', 'NES', 'MES');
@@ -77,10 +73,7 @@ test.describe('Route Tab Verification', () => {
   });
 
   /** *************** Test 2 **************** */
-  test('Adding waypoints to a route for operational study', async ({ page, browserName }) => {
-    const operationalStudiesPage = new OperationalStudiesPage(page);
-    const routePage = new RoutePage(page);
-
+  test('Adding waypoints to a route for operational study', async ({ browserName }) => {
     // Perform pathfinding by station trigrams
     await routePage.performPathfindingByTrigram('WS', 'NES');
 
@@ -108,11 +101,8 @@ test.describe('Route Tab Verification', () => {
 
   /** *************** Test 3 **************** */
   test('Reversing and deleting waypoints in a route for operational study', async ({
-    page,
     browserName,
   }) => {
-    const routePage = new RoutePage(page);
-
     // Perform pathfinding by station trigrams and verify map markers in Chromium
     await routePage.performPathfindingByTrigram('WS', 'SES', 'MWS');
     const expectedMapMarkersValues = ['West_station', 'South_East_station', 'Mid_West_station'];
@@ -128,8 +118,8 @@ test.describe('Route Tab Verification', () => {
     }
 
     // Delete operational points and verify no selected route
-    await routePage.clickOnDeleteOPButtons(OSRDLanguage);
-    await routePage.verifyNoSelectedRoute(OSRDLanguage);
+    await routePage.clickOnDeleteOPButtons();
+    await routePage.verifyNoSelectedRoute();
 
     // Perform pathfinding again and verify map markers in Chromium
     await routePage.performPathfindingByTrigram('WS', 'SES', 'MWS');
@@ -139,6 +129,6 @@ test.describe('Route Tab Verification', () => {
 
     // Delete the itinerary and verify no selected route
     await routePage.clickDeleteItineraryButton();
-    await routePage.verifyNoSelectedRoute(OSRDLanguage);
+    await routePage.verifyNoSelectedRoute();
   });
 });

@@ -1,11 +1,14 @@
 import enTranslations from '../../public/locales/en/stdcm-simulation-report-sheet.json';
 import frTranslations from '../../public/locales/fr/stdcm-simulation-report-sheet.json';
+import { getTranslations } from '../utils';
 import { getLocalizedDateString } from '../utils/date';
 import type { Simulation } from '../utils/types';
 
-const simulationSheetDetails = (selectedLanguage: string): Simulation => {
-  const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
-  console.info(selectedLanguage);
+const simulationSheetDetails = (): Simulation => {
+  const translations = getTranslations({
+    en: enTranslations,
+    fr: frTranslations,
+  });
   return {
     header: {
       toolDescription: translations.warningMessage,
@@ -13,7 +16,7 @@ const simulationSheetDetails = (selectedLanguage: string): Simulation => {
     },
     applicationDate: translations.applicationDate,
 
-    applicationDateValue: getLocalizedDateString('2024-10-17', selectedLanguage),
+    applicationDateValue: getLocalizedDateString('2024-10-17'),
 
     trainDetails: {
       compositionCode: translations.speedLimitByTag,

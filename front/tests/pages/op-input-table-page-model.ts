@@ -2,6 +2,7 @@ import { type Locator, type Page, expect } from '@playwright/test';
 
 import enTranslations from '../../public/locales/en/timesStops.json';
 import frTranslations from '../../public/locales/fr/timesStops.json';
+import { getTranslations } from '../utils';
 import { cleanWhitespace } from '../utils/dataNormalizer';
 
 class OperationalStudiesInputTablePage {
@@ -35,10 +36,12 @@ class OperationalStudiesInputTablePage {
     stationName: string,
     header: string,
     fillValue: string,
-    selectedLanguage: string,
     inputPlaceholder?: string
   ) {
-    const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
 
     const expectedColumnHeader = cleanWhitespace(header);
 

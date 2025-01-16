@@ -3,7 +3,10 @@ import { type Locator, type Page, expect } from '@playwright/test';
 import OperationalStudiesTimetablePage from './op-timetable-page-model';
 import enTranslations from '../../public/locales/en/timesStops.json';
 import frTranslations from '../../public/locales/fr/timesStops.json';
-import { normalizeData, type StationData } from '../utils/dataNormalizer';
+import { LOAD_PAGE_TIMEOUT } from '../assets/timeout-const';
+import { getTranslations } from '../utils';
+import { normalizeData } from '../utils/dataNormalizer';
+import type { StationData } from '../utils/types';
 
 class OperationalStudiesOutputTablePage extends OperationalStudiesTimetablePage {
   readonly columnHeaders: Locator;
@@ -36,9 +39,12 @@ class OperationalStudiesOutputTablePage extends OperationalStudiesTimetablePage 
     return headerMap;
   }
 
-  async getOutputTableData(expectedTableData: StationData[], selectedLanguage: string) {
+  async getOutputTableData(expectedTableData: StationData[]) {
     const actualTableData: StationData[] = [];
-    const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
     const headerIndexMap = await this.getHeaderIndexMap();
     const rowCount = await this.tableRows.count();
 

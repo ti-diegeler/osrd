@@ -5,21 +5,25 @@ import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-// Constants for supported languages
-const SUPPORTED_LANGUAGES: Record<string, string> = {
-  English: 'en',
-  Français: 'fr',
-};
-
 /**
  * Get a localized date string formatted according to the specified language.
  *
  * @param dateString - The date string to format (ISO format recommended)
- * @param language - The language for localization (e.g., "English", "French")
  * @returns A formatted date string
  */
-export function getLocalizedDateString(dateString: string, language: string): string {
-  const locale = SUPPORTED_LANGUAGES[language] ?? 'en';
+export function getLocalizedDateString(dateString: string): string {
+  const projectLanguage = process.env.PROJECT_LANGUAGE;
+  let locale: string;
+  switch (projectLanguage) {
+    case 'Français':
+      locale = 'fr-FR';
+      break;
+    case 'English':
+      locale = 'en-GB';
+      break;
+    default:
+      throw new Error(`Unsupported project language: "${projectLanguage}".`);
+  }
   const date = new Date(dateString);
   return new Intl.DateTimeFormat(locale, {
     weekday: 'long',
@@ -37,3 +41,30 @@ export function getLocalizedDateString(dateString: string, language: string): st
  */
 export const createDateInSpecialTimeZone = (dateString: string, timeZone: string) =>
   dayjs.tz(dateString, timeZone);
+
+/**
+ * Convert a date string from YYYY-MM-DD format to "DD mmm YYYY" format.
+ * @param dateString - The input date string in YYYY-MM-DD format.
+ * @returns The formatted date string in "DD mmm YYYY" format.
+ */
+export function formatDateToDayMonthYear(dateString: string): string {
+  const projectLanguage = process.env.PROJECT_LANGUAGE;
+  let locale: string;
+  switch (projectLanguage) {
+    case 'Français':
+      locale = 'fr-FR';
+      break;
+    case 'English':
+      locale = 'en-GB';
+      break;
+    default:
+      throw new Error(`Unsupported project language: "${projectLanguage}".`);
+  }
+  const date = new Date(dateString);
+  const formattedDate = date.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return formattedDate.replace('.', '');
+}

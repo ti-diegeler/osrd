@@ -1,26 +1,29 @@
 import type { Infra, TowedRollingStock } from 'common/api/osrdEditoastApi';
 
 import { electricRollingStockName, fastRollingStockName } from './assets/project-const';
-import HomePage from './pages/home-page-model';
+import test from './logging-fixture';
 import STDCMLinkedTrainPage from './pages/stdcm-linked-train-page-model';
-import STDCMPage, { type ConsistFields } from './pages/stdcm-page-model';
-import test from './test-logger';
+import STDCMPage from './pages/stdcm-page-model';
 import { handleAndVerifyInput, waitForInfraStateToBeCached } from './utils';
 import { getInfra, setTowedRollingStock } from './utils/api-setup';
+import type { ConsistFields } from './utils/types';
 
 test.use({
   launchOptions: {
     slowMo: 500, // Give the interface time to update between actions
   },
 });
+
 test.describe('Verify stdcm simulation page', () => {
   test.slow(); // Mark test as slow due to multiple steps
-
   test.use({ viewport: { width: 1920, height: 1080 } });
 
+  let stdcmPage: STDCMPage;
+  let stdcmLinkedTrainPage = STDCMLinkedTrainPage;
+
   let infra: Infra;
-  let OSRDLanguage: string;
   let createdTowedRollingStock: TowedRollingStock;
+
   const UPDATED_ORIGIN_ARRIVAL_DATE = '18/10/24';
   const consistDetails: ConsistFields = {
     tractionEngine: electricRollingStockName,
@@ -51,22 +54,19 @@ test.describe('Verify stdcm simulation page', () => {
   });
 
   test.beforeEach('Navigate to the STDCM page', async ({ page }) => {
-    // Retrieve OSRD language and navigate to STDCM page
-    const homePage = new HomePage(page);
-    await homePage.goToHomePage();
-    OSRDLanguage = await homePage.getOSRDLanguage();
+    [stdcmPage, stdcmLinkedTrainPage] = [new STDCMPage(page), new STDCMLinkedTrainPage(page)];
     await page.goto('/stdcm');
-    await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
-    await homePage.removeViteOverlay();
+    await page.waitForLoadState('load', { timeout: 30 * 1000 });
+    await stdcmPage.removeViteOverlay();
 
     // Wait for infra to be in 'CACHED' state before proceeding
     await waitForInfraStateToBeCached(infra.id);
   });
 
   /** *************** Test 1 **************** */
-  test('Verify default STDCM page', async ({ page }) => {
+  test('Verify default STDCM page', async () => {
     // Verify visibility of STDCM elements and handle default fields
-    const [stdcmPage, stdcmLinkedTrainPage] = [new STDCMPage(page), new STDCMLinkedTrainPage(page)];
+
     await stdcmPage.verifyStdcmElementsVisibility();
     await stdcmPage.verifyAllDefaultPageFields();
     await stdcmPage.addAndDeletedDefaultVia();
@@ -74,10 +74,8 @@ test.describe('Verify stdcm simulation page', () => {
   });
 
   /** *************** Test 2 **************** */
-  test('Launch STDCM simulation with all stops', async ({ page }) => {
+  test('Launch STDCM simulation with all stops', async () => {
     // Populate STDCM page with origin, destination, and via details, then verify
-    const stdcmPage = new STDCMPage(page);
-
     await stdcmPage.fillAndVerifyConsistDetails(
       consistDetails,
       tractionEnginePrefilledValues.tonnage,
@@ -85,11 +83,11 @@ test.describe('Verify stdcm simulation page', () => {
       tractionEnginePrefilledValues.maxSpeed
     );
     await stdcmPage.fillAndVerifyOriginDetails();
-    await stdcmPage.fillAndVerifyDestinationDetails(OSRDLanguage);
+    await stdcmPage.fillAndVerifyDestinationDetails();
     const viaDetails = [
       { viaNumber: 1, ciSearchText: 'mid_west' },
       { viaNumber: 2, ciSearchText: 'mid_east' },
-      { viaNumber: 3, ciSearchText: 'nS', language: OSRDLanguage },
+      { viaNumber: 3, ciSearchText: 'nS' },
     ];
 
     for (const viaDetail of viaDetails) {
@@ -101,12 +99,12 @@ test.describe('Verify stdcm simulation page', () => {
   });
 
   /** *************** Test 3 **************** */
-  test('Launch simulation with and without capacity for towed rolling stock', async ({ page }) => {
+  test('Launch simulation with and without capacity for towed rolling stock', async () => {
     const towedConsistDetails: ConsistFields = {
       tractionEngine: fastRollingStockName,
       towedRollingStock: createdTowedRollingStock.name,
     };
-    const stdcmPage = new STDCMPage(page);
+
     await stdcmPage.fillAndVerifyConsistDetails(
       towedConsistDetails,
       fastRollingStockPrefilledValues.tonnage,
@@ -125,14 +123,12 @@ test.describe('Verify stdcm simulation page', () => {
     // Run first simulation without capacity
     await stdcmPage.launchSimulation();
     await stdcmPage.verifySimulationDetails({
-      language: OSRDLanguage,
       simulationNumber: 1,
     });
     // Update tonnage and launch a second simulation with capacity
     await handleAndVerifyInput(stdcmPage.dateOriginArrival, UPDATED_ORIGIN_ARRIVAL_DATE);
     await stdcmPage.launchSimulation();
     await stdcmPage.verifySimulationDetails({
-      language: OSRDLanguage,
       simulationNumber: 2,
       simulationLengthAndDuration: '51 km — 2h 35min',
     });

@@ -6,26 +6,27 @@ import type { Infra } from 'common/api/osrdEditoastApi';
 
 import { electricRollingStockName } from './assets/project-const';
 import simulationSheetDetails from './assets/simulation-sheet-const';
-import HomePage from './pages/home-page-model';
-import STDCMPage, { type ConsistFields } from './pages/stdcm-page-model';
-import test from './test-logger';
+import test from './logging-fixture';
+import STDCMPage from './pages/stdcm-page-model';
 import { waitForInfraStateToBeCached } from './utils';
 import { getInfra } from './utils/api-setup';
 import { findFirstPdf, verifySimulationContent } from './utils/simulationSheet';
-import type { Simulation } from './utils/types';
+import type { ConsistFields, Simulation } from './utils/types';
 
 test.use({
   launchOptions: {
     slowMo: 500, // Give the interface time to update between actions
   },
 });
+
 test.describe('Verify stdcm simulation page', () => {
   test.describe.configure({ mode: 'serial' }); // Configure this block to run serially
   test.slow(); // Mark test as slow due to multiple steps
   test.use({ viewport: { width: 1920, height: 1080 } });
 
+  let stdcmPage: STDCMPage;
   let infra: Infra;
-  let OSRDLanguage: string;
+
   const consistDetails: ConsistFields = {
     tractionEngine: electricRollingStockName,
     tonnage: '950',
@@ -44,22 +45,18 @@ test.describe('Verify stdcm simulation page', () => {
   });
 
   test.beforeEach('Navigate to the STDCM page', async ({ page }) => {
-    // Retrieve OSRD language and navigate to STDCM page
-    const homePage = new HomePage(page);
-    await homePage.goToHomePage();
-    OSRDLanguage = await homePage.getOSRDLanguage();
+    stdcmPage = new STDCMPage(page);
     await page.goto('/stdcm');
     await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
-    await homePage.removeViteOverlay();
+    await stdcmPage.removeViteOverlay();
 
     // Wait for infra to be in 'CACHED' state before proceeding
     await waitForInfraStateToBeCached(infra.id);
   });
 
   /** *************** Test 1 **************** */
-  test('Verify STDCM stops and simulation sheet', async ({ page, browserName, context }) => {
+  test('Verify STDCM stops and simulation sheet', async ({ browserName, context }) => {
     // Populate STDCM page with origin, destination, and via details
-    const stdcmPage = new STDCMPage(page);
     await stdcmPage.fillAndVerifyConsistDetails(
       consistDetails,
       tractionEnginePrefilledValues.tonnage,
@@ -90,9 +87,8 @@ test.describe('Verify stdcm simulation page', () => {
     // Reset and verify empty fields
     const [newPage] = await Promise.all([context.waitForEvent('page'), stdcmPage.startNewQuery()]);
     await newPage.waitForLoadState();
-    // TODO: Uncomment the check when the bug #10335 is fixed
-    // const newStdcmPage = new STDCMPage(newPage);
-    // await newStdcmPage.verifyAllFieldsEmpty();
+    const newStdcmPage = new STDCMPage(newPage);
+    await newStdcmPage.verifyAllFieldsEmpty();
   });
 
   /** *************** Test 2 **************** */
@@ -107,7 +103,7 @@ test.describe('Verify stdcm simulation page', () => {
     const pdfBuffer = fs.readFileSync(pdfFilePath);
     const pdfData = await pdfParse(pdfBuffer);
     const pdfText = pdfData.text;
-    const expectedSimulation: Simulation = simulationSheetDetails(OSRDLanguage);
+    const expectedSimulation: Simulation = simulationSheetDetails();
     verifySimulationContent(pdfText, expectedSimulation);
   });
 });

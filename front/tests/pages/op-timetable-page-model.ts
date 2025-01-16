@@ -4,6 +4,7 @@ import enTranslations from '../../public/locales/en/operationalStudies/scenario.
 import frTranslations from '../../public/locales/fr/operationalStudies/scenario.json';
 import { clickWithDelay } from '../utils';
 import CommonPage from './common-page-model';
+import { getTranslations } from '../utils';
 
 class OperationalStudiesTimetablePage extends CommonPage {
   readonly invalidTrainsMessage: Locator;
@@ -80,8 +81,11 @@ class OperationalStudiesTimetablePage extends CommonPage {
   }
 
   // Verify that the message "The timetable contains invalid trains" is visible
-  async verifyInvalidTrainsMessageVisibility(selectedLanguage: string): Promise<void> {
-    const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
+  async verifyInvalidTrainsMessageVisibility(): Promise<void> {
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
     const invalidTrainsMessageText = await this.invalidTrainsMessage.innerText();
     expect(invalidTrainsMessageText).toEqual(translations.timetable.invalidTrains);
   }
@@ -97,7 +101,7 @@ class OperationalStudiesTimetablePage extends CommonPage {
     await this.page.waitForLoadState('networkidle');
 
     const simulationResultsLocators = [
-      // TODO: remove this commented code when the design of simationBar has been changed
+      // TODO: remove this commented code when the design of simulation bar has been changed
       // this.simulationBar,
       this.manchetteSpaceTimeChart,
       this.speedSpaceChart,
@@ -130,12 +134,14 @@ class OperationalStudiesTimetablePage extends CommonPage {
 
   // Filter train using composition codes button based on the provided translation and verify train count
   async clickCodeCompoTrainFilterButton(
-    selectedLanguage: string,
     filterTranslation: string | null,
     expectedTrainCount: number
   ): Promise<void> {
     await this.timetableFilterButton.click();
-    const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
 
     const filterButtonLocator = !filterTranslation
       ? this.page.getByRole('button', {
@@ -157,11 +163,13 @@ class OperationalStudiesTimetablePage extends CommonPage {
 
   // Filter trains validity and verify their count
   async filterValidityAndVerifyTrainCount(
-    selectedLanguage: string,
     validityFilter: 'Valid' | 'Invalid' | 'All',
     expectedTrainCount: number
   ): Promise<void> {
-    const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
     await this.timetableFilterButton.click();
 
     const validityFilters = {
@@ -177,11 +185,13 @@ class OperationalStudiesTimetablePage extends CommonPage {
 
   // Filter the honored trains and verify their count
   async filterHonoredAndVerifyTrainCount(
-    selectedLanguage: string,
     honoredFilter: 'Honored' | 'Not honored' | 'All',
     expectedTrainCount: number
   ): Promise<void> {
-    const translations = selectedLanguage === 'English' ? enTranslations : frTranslations;
+    const translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
     await this.timetableFilterButton.click();
 
     const honoredFilters = {

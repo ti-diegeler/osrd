@@ -3,41 +3,39 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Project, Study } from 'common/api/osrdEditoastApi';
 
 import studyData from './assets/operationStudies/study.json';
-import HomePage from './pages/home-page-model';
+import test from './logging-fixture';
 import StudyPage from './pages/study-page-model';
-import test from './test-logger';
-import { formatDateToDayMonthYear, generateUniqueName } from './utils';
+import { generateUniqueName, getTranslations } from './utils';
 import { getProject } from './utils/api-setup';
+import { formatDateToDayMonthYear } from './utils/date';
 import { createStudy } from './utils/setup-utils';
 import { deleteStudy } from './utils/teardown-utils';
 import enTranslations from '../public/locales/en/operationalStudies/study.json';
 import frTranslations from '../public/locales/fr/operationalStudies/study.json';
 
 test.describe('Validate the Study creation workflow', () => {
+  let studyPage: StudyPage;
   let project: Project;
   let study: Study;
-  let OSRDLanguage: string;
-  test.beforeAll(' Retrieve a project', async () => {
+  let translations: typeof enTranslations | typeof frTranslations;
+  test.beforeAll(' Retrieve a project and the translation', async () => {
     project = await getProject();
+    translations = getTranslations({
+      en: enTranslations,
+      fr: frTranslations,
+    });
   });
-
-  test.beforeEach('Create a new study linked to the project', async ({ page }) => {
-    const homePage = new HomePage(page);
-    await homePage.goToHomePage();
-    OSRDLanguage = await homePage.getOSRDLanguage();
+  test.beforeEach(async ({ page }) => {
+    studyPage = new StudyPage(page);
   });
 
   /** *************** Test 1 **************** */
   test('Create a new study', async ({ page }) => {
-    const studyPage = new StudyPage(page);
     // Navigate to project page
     await page.goto(`/operational-studies/projects/${project.id}`);
-
-    // Set translations based on the language
-    const translations = OSRDLanguage === 'English' ? enTranslations : frTranslations;
     const studyName = `${studyData.name} ${uuidv4()}`; // Unique study name
     const todayDateISO = new Date().toISOString().split('T')[0]; // Get today's date in ISO format
-    const expectedDate = formatDateToDayMonthYear(todayDateISO, OSRDLanguage);
+    const expectedDate = formatDateToDayMonthYear(todayDateISO);
     // Create a new study using the study page model
     await studyPage.createStudy({
       name: studyName,
@@ -72,14 +70,12 @@ test.describe('Validate the Study creation workflow', () => {
 
   /** *************** Test 2 **************** */
   test('Update an existing study', async ({ page }) => {
-    const studyPage = new StudyPage(page);
     // Create a study
     study = await createStudy(project.id, generateUniqueName(studyData.name));
     // Navigate to study page
     await page.goto(`/operational-studies/projects/${project.id}/studies/${study.id}`);
-    const translations = OSRDLanguage === 'English' ? enTranslations : frTranslations;
     const tomorrowDateISO = new Date(Date.now() + 86400000).toISOString().split('T')[0]; // Get tomorrow's date in ISO format
-    const expectedDate = formatDateToDayMonthYear(tomorrowDateISO, OSRDLanguage);
+    const expectedDate = formatDateToDayMonthYear(tomorrowDateISO);
     // Update the study with new values
     await studyPage.updateStudy({
       name: `${study.name} (updated)`,
@@ -121,8 +117,6 @@ test.describe('Validate the Study creation workflow', () => {
   test('Delete a study', async ({ page }) => {
     // Create a study
     study = await createStudy(project.id, generateUniqueName(studyData.name));
-
-    const studyPage = new StudyPage(page);
 
     // Navigate to the list of studies for the project
     await page.goto(`/operational-studies/projects/${project.id}`);

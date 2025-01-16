@@ -95,6 +95,7 @@ class OperationalStudiesPage extends CommonPage {
     const startTime = `${currentDate}T${departureTime}`;
     await this.startTimeField.waitFor({ state: 'visible' });
     await this.startTimeField.fill(startTime);
+    await this.startTimeField.dispatchEvent('blur');
     await expect(this.startTimeField).toHaveValue(startTime);
   }
 

@@ -1,23 +1,4 @@
-interface Margin {
-  theoretical: string;
-  theoreticalS: string;
-  actual: string;
-  difference: string;
-}
-
-export interface StationData {
-  stationName: string;
-  stationCh: string;
-  trackName: string;
-  requestedArrival: string;
-  requestedDeparture: string;
-  stopTime: string;
-  signalReceptionClosed: boolean;
-  shortSlipDistance: boolean;
-  margin: Margin;
-  calculatedArrival: string;
-  calculatedDeparture: string;
-}
+import type { StationData } from './types';
 
 /**
  * Trim leading/trailing whitespace and replaces multiple spaces with a single space.

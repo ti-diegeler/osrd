@@ -1,3 +1,4 @@
+// STDCM simulation pdf content type
 export type Simulation = {
   header: {
     toolDescription: string;
@@ -117,4 +118,36 @@ export type Simulation = {
     };
     disclaimer: string;
   };
+};
+
+// STDCM consist block type
+export type ConsistFields = {
+  tractionEngine: string;
+  towedRollingStock?: string;
+  tonnage?: string;
+  length?: string;
+  maxSpeed?: string;
+  speedLimitTag?: string;
+};
+
+type Margin = {
+  theoretical: string;
+  theoreticalS: string;
+  actual: string;
+  difference: string;
+};
+
+// STDCM simulation table type
+export type StationData = {
+  stationName: string;
+  stationCh: string;
+  trackName: string;
+  requestedArrival: string;
+  requestedDeparture: string;
+  stopTime: string;
+  signalReceptionClosed: boolean;
+  shortSlipDistance: boolean;
+  margin: Margin;
+  calculatedArrival: string;
+  calculatedDeparture: string;
 };

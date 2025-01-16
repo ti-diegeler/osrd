@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { logger } from '../logging-fixture';
+
 class CommonPage {
   readonly page: Page;
 
@@ -44,7 +46,15 @@ class CommonPage {
 
   async closeToastNotification(): Promise<void> {
     const closeToastElements = await this.closeToastButton.all();
-    await Promise.all(closeToastElements.map((closeToastElement) => closeToastElement.click()));
+    await Promise.all(
+      closeToastElements.map(async (closeToastElement) => {
+        try {
+          await closeToastElement.click();
+        } catch {
+          logger.warn('Toast disappeared before it could be clicked');
+        }
+      })
+    );
   }
 }
 
