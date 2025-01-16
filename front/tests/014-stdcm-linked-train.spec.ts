@@ -1,25 +1,20 @@
 import type { Infra, TowedRollingStock } from 'common/api/osrdEditoastApi';
 
 import { fastRollingStockName } from './assets/project-const';
-import HomePage from './pages/home-page-model';
+import test from './logging-fixture';
 import STDCMLinkedTrainPage from './pages/stdcm-linked-train-page-model';
-import STDCMPage, { type ConsistFields } from './pages/stdcm-page-model';
-import test from './test-logger';
+import STDCMPage from './pages/stdcm-page-model';
 import { waitForInfraStateToBeCached } from './utils';
 import { getInfra, setTowedRollingStock } from './utils/api-setup';
+import type { ConsistFields } from './utils/types';
 
-test.use({
-  launchOptions: {
-    slowMo: 500, // Give the interface time to update between actions
-  },
-});
 test.describe('Verify stdcm simulation page', () => {
   test.slow(); // Mark test as slow due to multiple steps
-
   test.use({ viewport: { width: 1920, height: 1080 } });
-  let homePage: HomePage;
-  let stdcmLinkedTrainPage: STDCMLinkedTrainPage;
+
   let stdcmPage: STDCMPage;
+  let stdcmLinkedTrainPage: STDCMLinkedTrainPage;
+
   let infra: Infra;
   let createdTowedRollingStock: TowedRollingStock;
   let towedConsistDetails: ConsistFields;
@@ -45,15 +40,11 @@ test.describe('Verify stdcm simulation page', () => {
   });
 
   test.beforeEach('Navigate to the STDCM page', async ({ page }) => {
-    [homePage, stdcmPage, stdcmLinkedTrainPage] = [
-      new HomePage(page),
-      new STDCMPage(page),
-      new STDCMLinkedTrainPage(page),
-    ];
+    [stdcmPage, stdcmLinkedTrainPage] = [new STDCMPage(page), new STDCMLinkedTrainPage(page)];
     // Navigate to STDCM page
     await page.goto('/stdcm');
-    await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
-    await homePage.removeViteOverlay();
+    await page.waitForLoadState('networkidle');
+    await stdcmPage.removeViteOverlay();
 
     // Wait for infra to be in 'CACHED' state before proceeding
     await waitForInfraStateToBeCached(infra.id);

@@ -77,7 +77,6 @@ test.describe('Simulation Settings Tab Verification', () => {
   );
 
   type TranslationKeys = keyof typeof enTranslations;
-  let stabilityTimeout: number;
 
   // Define CellData interface for table cell data
   interface CellData {
@@ -141,10 +140,10 @@ test.describe('Simulation Settings Tab Verification', () => {
       await waitForInfraStateToBeCached(infra.id);
       // Add a new train and set its properties
       await operationalStudiesPage.clickOnAddTrainButton();
-      await operationalStudiesPage.setTrainStartTime('11:22:40');
-      await rollingStockPage.selectRollingStock(improbableRollingStockName);
-      await page.waitForTimeout(stabilityTimeout);
       await operationalStudiesPage.setTrainScheduleName('Train-name-e2e-test');
+      await rollingStockPage.selectRollingStock(improbableRollingStockName);
+      await operationalStudiesPage.setTrainStartTime('11:22:40');
+
       // Perform pathfinding
       await operationalStudiesPage.clickOnRouteTab();
       await routePage.performPathfindingByTrigram('WS', 'SES', 'MWS');
@@ -153,6 +152,7 @@ test.describe('Simulation Settings Tab Verification', () => {
       await scrollContainer(page, '.time-stops-datasheet .dsg-container');
     }
   );
+
   test.afterEach('Delete the created scenario', async () => {
     await deleteScenario(project.id, study.id, scenario.name);
   });
@@ -201,7 +201,6 @@ test.describe('Simulation Settings Tab Verification', () => {
     await operationalStudiesPage.clickOnSimulationSettingsTab();
     await opSimulationSettingsPage.deactivateElectricalProfile();
     await opTimetablePage.clickOnEditTrainSchedule();
-    await page.waitForTimeout(stabilityTimeout); // Waiting for the timetable to update due to a slight latency
     await opTimetablePage.getTrainArrivalTime('11:52');
     await opTimetablePage.clickOnScenarioCollapseButton();
     await opOutputTablePage.verifyTimesStopsDataSheetVisibility();
@@ -263,7 +262,6 @@ test.describe('Simulation Settings Tab Verification', () => {
     await operationalStudiesPage.clickOnSimulationSettingsTab();
     await opSimulationSettingsPage.selectCodeCompoOption('__PLACEHOLDER__');
     await opTimetablePage.clickOnEditTrainSchedule();
-    await page.waitForTimeout(stabilityTimeout);
     await opTimetablePage.getTrainArrivalTime('11:52');
     await opTimetablePage.clickOnScenarioCollapseButton();
     await opOutputTablePage.verifyTimesStopsDataSheetVisibility();
@@ -335,7 +333,6 @@ test.describe('Simulation Settings Tab Verification', () => {
     await operationalStudiesPage.clickOnSimulationSettingsTab();
     await opSimulationSettingsPage.activateMarecoMargin();
     await opTimetablePage.clickOnEditTrainSchedule();
-    await page.waitForTimeout(stabilityTimeout);
     await opTimetablePage.getTrainArrivalTime('11:54');
     await opTimetablePage.clickOnScenarioCollapseButton();
     await opOutputTablePage.verifyTimesStopsDataSheetVisibility();

@@ -13,12 +13,6 @@ import { getInfra } from './utils/api-setup';
 import { findFirstPdf, verifySimulationContent } from './utils/simulationSheet';
 import type { ConsistFields, Simulation } from './utils/types';
 
-test.use({
-  launchOptions: {
-    slowMo: 500, // Give the interface time to update between actions
-  },
-});
-
 test.describe('Verify stdcm simulation page', () => {
   test.describe.configure({ mode: 'serial' }); // Configure this block to run serially
   test.slow(); // Mark test as slow due to multiple steps
@@ -47,7 +41,7 @@ test.describe('Verify stdcm simulation page', () => {
   test.beforeEach('Navigate to the STDCM page', async ({ page }) => {
     stdcmPage = new STDCMPage(page);
     await page.goto('/stdcm');
-    await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
+    await page.waitForLoadState('networkidle');
     await stdcmPage.removeViteOverlay();
 
     // Wait for infra to be in 'CACHED' state before proceeding
@@ -88,7 +82,7 @@ test.describe('Verify stdcm simulation page', () => {
     const [newPage] = await Promise.all([context.waitForEvent('page'), stdcmPage.startNewQuery()]);
     await newPage.waitForLoadState();
     const newStdcmPage = new STDCMPage(newPage);
-    await newStdcmPage.verifyAllFieldsEmpty();
+    await newStdcmPage.verifyAllDefaultPageFields();
   });
 
   /** *************** Test 2 **************** */

@@ -25,6 +25,7 @@ test.describe('Validate the Study creation workflow', () => {
       fr: frTranslations,
     });
   });
+
   test.beforeEach(async ({ page }) => {
     studyPage = new StudyPage(page);
   });

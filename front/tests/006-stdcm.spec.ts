@@ -8,18 +8,12 @@ import { handleAndVerifyInput, waitForInfraStateToBeCached } from './utils';
 import { getInfra, setTowedRollingStock } from './utils/api-setup';
 import type { ConsistFields } from './utils/types';
 
-test.use({
-  launchOptions: {
-    slowMo: 500, // Give the interface time to update between actions
-  },
-});
-
 test.describe('Verify stdcm simulation page', () => {
   test.slow(); // Mark test as slow due to multiple steps
   test.use({ viewport: { width: 1920, height: 1080 } });
 
   let stdcmPage: STDCMPage;
-  let stdcmLinkedTrainPage = STDCMLinkedTrainPage;
+  let stdcmLinkedTrainPage: STDCMLinkedTrainPage;
 
   let infra: Infra;
   let createdTowedRollingStock: TowedRollingStock;
@@ -56,7 +50,7 @@ test.describe('Verify stdcm simulation page', () => {
   test.beforeEach('Navigate to the STDCM page', async ({ page }) => {
     [stdcmPage, stdcmLinkedTrainPage] = [new STDCMPage(page), new STDCMLinkedTrainPage(page)];
     await page.goto('/stdcm');
-    await page.waitForLoadState('load', { timeout: 30 * 1000 });
+    await page.waitForLoadState('networkidle');
     await stdcmPage.removeViteOverlay();
 
     // Wait for infra to be in 'CACHED' state before proceeding

@@ -15,6 +15,7 @@ import {
   VIA_STOP_TIMES,
   VIA_STOP_TYPES,
 } from '../assets/stdcm-const';
+import { EXPLICIT_UI_STABILITY_TIMEOUT, STDCM_SIMULATION_TIMEOUT } from '../assets/timeout-const';
 import { logger } from '../logging-fixture';
 import { getTranslations, handleAndVerifyInput, readJsonFile } from '../utils';
 import HomePage from './home-page-model';
@@ -30,8 +31,6 @@ interface TableRow {
   weight: string | null;
   refEngine: string | null;
 }
-
-const MINIMUM_SIMULATION_NUMBER = 1;
 
 class STDCMPage extends HomePage {
   readonly debugButton: Locator;
@@ -242,6 +241,7 @@ class STDCMPage extends HomePage {
     this.allViasButton = page.getByTestId('all-vias-button');
     this.retainSimulationButton = page.getByTestId('retain-simulation-button');
     this.downloadSimulationButton = page.locator('.download-simulation a[download]');
+    this.downloadSimulationButton = page.locator('.download-simulation a[download]');
     this.downloadLink = page.locator('.download-simulation a');
     this.startNewQueryButton = page.getByTestId('start-new-query-button');
     this.startNewQueryWithDataButton = page.getByTestId('start-new-query-with-data-button');
@@ -356,6 +356,7 @@ class STDCMPage extends HomePage {
   // Add a via card, verify fields, and delete it
   async addAndDeletedDefaultVia() {
     await this.addViaButton.click();
+    await this.page.waitForTimeout(EXPLICIT_UI_STABILITY_TIMEOUT); // Wait for the animation to complete
     await expect(this.getViaCI(1)).toHaveValue('');
     await expect(this.getViaCH(1)).toHaveValue('');
     await expect(this.getViaType(1)).toHaveValue(VIA_STOP_TYPES.PASSAGE_TIME);
@@ -648,18 +649,11 @@ class STDCMPage extends HomePage {
 
   // Launch the simulation and check if simulation-related elements are visible
   async launchSimulation(): Promise<void> {
-    await this.launchSimulationButton.waitFor({ state: 'visible' });
+    await this.launchSimulationButton.waitFor();
     await expect(this.launchSimulationButton).toBeEnabled();
     await this.launchSimulationButton.click({ force: true });
-    // Wait for simulation elements to load and validate their presence
-    await this.simulationList.waitFor({ timeout: 60_000 });
-    const simulationElements = await this.simulationList.all();
-
-    if (simulationElements.length < MINIMUM_SIMULATION_NUMBER) {
-      throw new Error(
-        `Expected at least ${MINIMUM_SIMULATION_NUMBER} simulation, but found ${simulationElements.length}.`
-      );
-    }
+    // Wait for simulation message "Calculation completed"
+    await this.simulationStatus.waitFor({ timeout: STDCM_SIMULATION_TIMEOUT });
     // Check map result container visibility only for Chromium browser
     if (this.page.context().browser()?.browserType().name() === 'chromium') {
       await expect(this.mapResultContainer).toBeVisible();
