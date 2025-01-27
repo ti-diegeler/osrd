@@ -13,6 +13,8 @@ import fr.sncf.osrd.envelope_sim.*
 import fr.sncf.osrd.envelope_sim.overlays.EnvelopeDeceleration
 import kotlin.math.max
 import kotlin.math.min
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  * Formulas are found in `SUBSET-026-3v400.pdf` from the file at
@@ -34,6 +36,8 @@ enum class BrakingType {
     ETCS_SBD,
     ETCS_GUI
 }
+
+val etcsBrakingCurvesLogger: Logger = LoggerFactory.getLogger("EtcsBrakingCurves")
 
 /** Compute braking curves at every end of authority. */
 fun addBrakingCurvesAtEOAs(
@@ -84,12 +88,10 @@ fun addBrakingCurvesAtEOAs(
         assert(fullIndicationCurve.endPos == targetPosition)
         assert(fullIndicationCurve.endSpeed == targetSpeed)
 
-        // Indication curve for EOAs will always have at least 2 points with positive positions.
-        // This method cannot return a null.
         val indicationCurve =
-            keepBrakingCurveUnderOverlay(fullIndicationCurve, envelope, beginPos)!!
-        assert(indicationCurve.beginPos >= beginPos)
-        assert(indicationCurve.endPos == targetPosition)
+            keepBrakingCurveUnderOverlay(Envelope.make(fullIndicationCurve), envelope, beginPos)
+                ?: continue
+        assert(indicationCurve.beginPos >= beginPos && indicationCurve.endPos == targetPosition)
         assert(
             indicationCurve.beginSpeed <= maxSpeedEnvelope &&
                 indicationCurve.endSpeed == targetSpeed
@@ -161,26 +163,11 @@ fun addBrakingCurvesAtLOAs(
 
         val fullIndicationCurve =
             computeIndicationBrakingCurveFromRef(context, ebiCurve, BrakingCurveType.EBI, guiCurve)
-        assert(fullIndicationCurve.endPos <= targetPosition)
+        val endOfIndicationCurve = fullIndicationCurve.endPos
+        assert(endOfIndicationCurve <= targetPosition)
         assert(fullIndicationCurve.endSpeed == targetSpeed)
 
-        val indicationCurve =
-            keepBrakingCurveUnderOverlay(
-                fullIndicationCurve,
-                envelopeWithLoaBrakingCurves,
-                beginPos
-            )
-
-        if (indicationCurve != null) {
-            assert(indicationCurve.beginPos >= 0.0 && indicationCurve.endPos <= targetPosition)
-            assert(
-                indicationCurve.beginSpeed <= maxSpeedEnvelope &&
-                    indicationCurve.endSpeed == targetSpeed
-            )
-            builder.addPart(indicationCurve)
-        }
-
-        val endOfIndicationCurve = indicationCurve?.endPos ?: beginPos
+        val fullIndCurveWithMaintain: Envelope
         if (endOfIndicationCurve < targetPosition) {
             // Maintain target speed until target position, i.e. LOA.
             val maintainTargetSpeedCurve =
@@ -189,8 +176,23 @@ fun addBrakingCurvesAtLOAs(
                     doubleArrayOf(endOfIndicationCurve, targetPosition),
                     doubleArrayOf(targetSpeed, targetSpeed)
                 )
-            builder.addPart(maintainTargetSpeedCurve)
+            fullIndCurveWithMaintain = Envelope.make(fullIndicationCurve, maintainTargetSpeedCurve)
+        } else {
+            fullIndCurveWithMaintain = Envelope.make(fullIndicationCurve)
         }
+
+        val indicationCurve =
+            keepBrakingCurveUnderOverlay(
+                fullIndCurveWithMaintain,
+                envelopeWithLoaBrakingCurves,
+                beginPos
+            ) ?: continue
+        assert(indicationCurve.beginPos >= beginPos && indicationCurve.endPos == targetPosition)
+        assert(
+            indicationCurve.beginSpeed <= maxSpeedEnvelope &&
+                indicationCurve.endSpeed == targetSpeed
+        )
+        builder.addPart(indicationCurve)
 
         // We build the LOAs along the path, and they don't all have the same target speeds. To
         // handle intersections with the next LOA, it is needed to add this LOA braking curve to the
@@ -344,21 +346,38 @@ private fun computeIndicationBrakingCurveFromRef(
 
 /**
  * Keep the part of the full braking curve which is located underneath the overlay and intersects
- * with it or with begin position. If the part has no intersection, return null. Ex: the part only
- * has negative positions, and the overlay starts at 0.0.
+ * with it or with begin position. If the part has no intersection, return null.
  */
 private fun keepBrakingCurveUnderOverlay(
-    fullBrakingCurve: EnvelopePart,
+    fullBrakingCurve: Envelope,
     overlay: Envelope,
     beginPos: Double
 ): EnvelopePart? {
     if (fullBrakingCurve.endPos <= beginPos) {
+        etcsBrakingCurvesLogger.warn(
+            "The position-range of the ETCS braking curve ending at ($beginPos, ${fullBrakingCurve.endSpeed}) does not intersect with the overlay envelope's position-range."
+        )
         return null
     }
-    val positions = fullBrakingCurve.clonePositions()
-    val speeds = fullBrakingCurve.cloneSpeeds()
-    val timeDeltas = fullBrakingCurve.cloneTimes()
-    val nbPoints = fullBrakingCurve.pointCount()
+
+    // Remove duplicate point part transitions: the last point of the previous array is the first
+    // point of the next array. Otherwise, we would be adding two following identical points with
+    // addStep, and this would throw an exception.
+    val positions =
+        fullBrakingCurve
+            .map { it.clonePositions() }
+            .reduce { mergedArray, currentArray ->
+                mergedArray + currentArray.drop(1).toDoubleArray()
+            }
+    val speeds =
+        fullBrakingCurve
+            .map { it.cloneSpeeds() }
+            .reduce { mergedArray, currentArray ->
+                mergedArray + currentArray.drop(1).toDoubleArray()
+            }
+    val timeDeltas = fullBrakingCurve.flatMap { it.cloneTimes().asList() }
+    val nbPoints = positions.size
+
     val partBuilder = EnvelopePartBuilder()
     partBuilder.setAttr(EnvelopeProfile.BRAKING)
     val overlayBuilder =
@@ -368,10 +387,9 @@ private fun keepBrakingCurveUnderOverlay(
             EnvelopeConstraint(overlay, EnvelopePartConstraintType.CEILING)
         )
     overlayBuilder.initEnvelopePart(positions[nbPoints - 1], speeds[nbPoints - 1], -1.0)
-    for (i in fullBrakingCurve.pointCount() - 2 downTo 0) {
+    for (i in nbPoints - 2 downTo 0) {
         if (!overlayBuilder.addStep(positions[i], speeds[i], timeDeltas[i])) break
     }
-    if (partBuilder.stepCount() <= 1) return null
     return partBuilder.build()
 }
 
