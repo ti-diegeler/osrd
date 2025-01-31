@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import { compact } from 'lodash';
 import { useTranslation } from 'react-i18next';
 import { useSelector } from 'react-redux';
@@ -18,6 +20,10 @@ import { useStoreDataForRollingStockSelector } from 'modules/rollingStock/compon
 import { isElectric } from 'modules/rollingStock/helpers/electric';
 import TimesStopsInput from 'modules/timesStops/TimesStopsInput';
 import { Map } from 'modules/trainschedule/components/ManageTrainSchedule';
+import {
+  MARKER_TYPE,
+  type MarkerInformation,
+} from 'modules/trainschedule/components/ManageTrainSchedule/ManageTrainScheduleMap/ItineraryMarkers';
 import SimulationSettings from 'modules/trainschedule/components/ManageTrainSchedule/SimulationSettings';
 import TrainSettings from 'modules/trainschedule/components/ManageTrainSchedule/TrainSettings';
 import {
@@ -43,6 +49,29 @@ const ManageTrainSchedule = ({ trainIdToEdit }: ManageTrainScheduleProps) => {
   const origin = useSelector(getOrigin);
   const destination = useSelector(getDestination);
   const pathSteps = useSelector(getPathSteps);
+
+  const markersInformation = useMemo(
+    () =>
+      pathSteps.reduce<MarkerInformation[]>((acc, step, index) => {
+        if (!step) return acc;
+
+        let pointType = MARKER_TYPE.VIA;
+
+        if (index === 0) {
+          pointType = MARKER_TYPE.ORIGIN;
+        } else if (index === pathSteps.length - 1) {
+          pointType = MARKER_TYPE.DESTINATION;
+        }
+        acc.push({
+          ...step,
+          pointType,
+        });
+
+        return acc;
+      }, []),
+    [pathSteps]
+  );
+
   const constraintDistribution = useSelector(getConstraintDistribution);
   const startTime = useSelector(getStartTime);
 
@@ -103,7 +132,7 @@ const ManageTrainSchedule = ({ trainIdToEdit }: ManageTrainScheduleProps) => {
         <div className="floating-itinerary">
           <Itinerary />
         </div>
-        <Map pathProperties={pathProperties} simulationPathSteps={compact(pathSteps)}>
+        <Map pathProperties={pathProperties} simulationPathSteps={markersInformation}>
           <IncompatibleConstraints pathProperties={pathProperties} />
         </Map>
       </div>

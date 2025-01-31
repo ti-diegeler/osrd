@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 
 import { point } from '@turf/helpers';
@@ -208,9 +207,9 @@ const AddPathStepPopup = ({
         <button
           className="btn btn-sm btn-success"
           type="button"
-          onClick={() =>
-            setPointIti('origin', newPathStep, launchPathfinding, resetFeatureInfoClick)
-          }
+          onClick={() => {
+            setPointIti('origin', newPathStep, launchPathfinding, resetFeatureInfoClick);
+          }}
         >
           <RiMapPin2Fill />
           <span className="d-none">{t('origin')}</span>
@@ -236,9 +235,9 @@ const AddPathStepPopup = ({
         <button
           className="btn btn-sm btn-warning"
           type="button"
-          onClick={() =>
-            setPointIti('destination', newPathStep, launchPathfinding, resetFeatureInfoClick)
-          }
+          onClick={() => {
+            setPointIti('destination', newPathStep, launchPathfinding, resetFeatureInfoClick);
+          }}
         >
           <IoFlag />
           <span className="d-none">{t('destination')}</span>

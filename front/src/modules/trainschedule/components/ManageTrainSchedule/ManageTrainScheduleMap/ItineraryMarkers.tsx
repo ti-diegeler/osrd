@@ -14,6 +14,7 @@ import viaSVG from 'assets/pictures/via.svg';
 import { getNearestTrack } from 'utils/mapHelper';
 
 export type MarkerInformation = {
+  pointType: MARKER_TYPE;
   name?: string;
   coordinates?: number[] | Position;
   metadata?: {
@@ -24,7 +25,7 @@ export type MarkerInformation = {
   };
 };
 
-enum MARKER_TYPE {
+export enum MARKER_TYPE {
   ORIGIN = 'origin',
   VIA = 'via',
   DESTINATION = 'destination',
@@ -68,14 +69,21 @@ const formatPointWithNoName = (
 const extractMarkerInformation = (pathSteps: MarkerInformation[], showStdcmAssets: boolean) =>
   pathSteps.reduce((acc, cur, index) => {
     if (cur && cur.coordinates) {
-      if (index === 0) {
+      if (cur.pointType === MARKER_TYPE.ORIGIN) {
         acc.push({
           coordinates: cur.coordinates,
           type: MARKER_TYPE.ORIGIN,
           marker: cur,
           imageSource: showStdcmAssets ? stdcmOrigin : originSVG,
         });
-      } else if (index > 0 && index < pathSteps.length - 1) {
+      } else if (cur.pointType === MARKER_TYPE.DESTINATION) {
+        acc.push({
+          coordinates: cur.coordinates,
+          type: MARKER_TYPE.DESTINATION,
+          marker: cur,
+          imageSource: showStdcmAssets ? stdcmDestination : destinationSVG,
+        });
+      } else
         acc.push({
           coordinates: cur.coordinates,
           type: MARKER_TYPE.VIA,
@@ -83,14 +91,6 @@ const extractMarkerInformation = (pathSteps: MarkerInformation[], showStdcmAsset
           imageSource: showStdcmAssets ? stdcmVia : viaSVG,
           index,
         });
-      } else if (index === pathSteps.length - 1) {
-        acc.push({
-          coordinates: cur.coordinates,
-          type: MARKER_TYPE.DESTINATION,
-          marker: cur,
-          imageSource: showStdcmAssets ? stdcmDestination : destinationSVG,
-        });
-      }
     }
     return acc;
   }, [] as MarkerProperties[]);
@@ -171,7 +171,9 @@ const ItineraryMarkers = ({ map, simulationPathSteps, showStdcmAssets }: Itinera
                   'stdcm-via': isVia && showStdcmAssets,
                 })}
               >
-                {markerInfo.index}
+                {markersInformation[0].type === MARKER_TYPE.ORIGIN
+                  ? markerInfo.index
+                  : markerInfo.index + 1}
               </span>
             )}
             {!showStdcmAssets && markerName}

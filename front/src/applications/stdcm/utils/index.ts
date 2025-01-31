@@ -1,4 +1,7 @@
-import type { MarkerInformation } from 'modules/trainschedule/components/ManageTrainSchedule/ManageTrainScheduleMap/ItineraryMarkers';
+import {
+  MARKER_TYPE,
+  type MarkerInformation,
+} from 'modules/trainschedule/components/ManageTrainSchedule/ManageTrainScheduleMap/ItineraryMarkers';
 import type { StdcmPathStep } from 'reducers/osrdconf/types';
 import { dateToHHMMSS, dateToDDMMYYYY } from 'utils/date';
 
@@ -13,13 +16,23 @@ export const getTimesInfoFromDate = (date?: Date) =>
       }
     : undefined;
 
-export const extractMarkersInfo = (pathSteps: StdcmPathStep[]) =>
-  pathSteps.reduce((acc, step) => {
-    if (step.location) {
-      acc.push({
-        coordinates: step.location.coordinates,
-        name: step.location.name,
-      });
+export const extractMarkersInfo = (pathSteps: StdcmPathStep[]): MarkerInformation[] =>
+  pathSteps.reduce((acc: MarkerInformation[], step, index) => {
+    if (!step.location) return acc;
+
+    let pointType = MARKER_TYPE.VIA;
+
+    if (index === 0) {
+      pointType = MARKER_TYPE.ORIGIN;
+    } else if (index === pathSteps.length - 1) {
+      pointType = MARKER_TYPE.DESTINATION;
     }
+
+    acc.push({
+      pointType,
+      coordinates: step.location.coordinates,
+      name: step.location.name,
+    });
+
     return acc;
-  }, [] as MarkerInformation[]);
+  }, []);
