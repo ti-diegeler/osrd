@@ -26,6 +26,9 @@
   "modifyScenario": "Modify scenario",
   "moreDetails": "more details",
   "noElectricalProfileSet": "No electrical profile",
+  "pacedTrain": {
+    "pacedTrain": "Paced train"
+  },
   "scenarioCancel": "Cancel",
   "scenarioCreateButton": "Create a scenario",
   "scenarioCreationTitle": "Create a scenario",

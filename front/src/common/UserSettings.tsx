@@ -8,14 +8,17 @@ import { useSelector } from 'react-redux';
 import InputSNCF from 'common/BootstrapSNCF/InputSNCF';
 import { ModalBodySNCF, ModalHeaderSNCF } from 'common/BootstrapSNCF/ModalSNCF';
 import { updateUserPreferences } from 'reducers/user';
-import { getUserPreferences } from 'reducers/user/userSelectors';
+import { getIsSuperUser, getUserPreferences } from 'reducers/user/userSelectors';
 import { useAppDispatch } from 'store';
 import { useDebounce } from 'utils/helpers';
+
+import SwitchSNCF from './BootstrapSNCF/SwitchSNCF/SwitchSNCF';
 
 const UserSettings = () => {
   const userPreferences = useSelector(getUserPreferences);
   const [safeWordText, setSafeWordText] = useState(userPreferences.safeWord);
   const dispatch = useAppDispatch();
+  const isSuperUser = useSelector(getIsSuperUser);
 
   const debouncedSafeWord = useDebounce(safeWordText, 500);
 
@@ -23,7 +26,7 @@ const UserSettings = () => {
     dispatch(updateUserPreferences({ ...userPreferences, safeWord: debouncedSafeWord }));
   }, [debouncedSafeWord]);
 
-  const { t } = useTranslation(['home/navbar']);
+  const { t } = useTranslation(['home/navbar', 'operationalStudies/scenario']);
   return (
     <>
       <ModalHeaderSNCF withCloseButton>
@@ -55,6 +58,28 @@ const UserSettings = () => {
         <small id="safeWordHelpBlock" className="form-text text-muted">
           {t('safeWordHelp')}
         </small>
+        {
+          // TODO PACEDTRAIN: Remove switch after development pacedTrain feature
+          isSuperUser && (
+            <div className="d-flex align-items-center mt-2">
+              <SwitchSNCF
+                id="paced-train-switch"
+                type="switch"
+                name={t('operationalStudies/scenario:pacedTrain.pacedTrain')}
+                checked={userPreferences.showPacedTrains}
+                onChange={() =>
+                  dispatch(
+                    updateUserPreferences({
+                      ...userPreferences,
+                      showPacedTrains: !userPreferences.showPacedTrains,
+                    })
+                  )
+                }
+              />
+              <div className="ml-2">{t('operationalStudies/scenario:pacedTrain.pacedTrain')}</div>
+            </div>
+          )
+        }
       </ModalBodySNCF>
     </>
   );

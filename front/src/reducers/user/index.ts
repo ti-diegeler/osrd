@@ -7,7 +7,8 @@ export interface UserState {
   isLogged: boolean;
   loginError?: ApiError;
   username: string;
-  userPreferences: { safeWord: string };
+  // TODO PACEDTRAIN: Remove pacedTrain after development pacedTrain feature
+  userPreferences: { safeWord: string; showPacedTrains?: boolean };
   userRoles: BuiltinRole[];
   account: Record<string, string>;
 }
@@ -16,7 +17,8 @@ export const userInitialState: UserState = {
   isLogged: false,
   loginError: undefined,
   username: '',
-  userPreferences: { safeWord: '' },
+  // TODO PACEDTRAIN: Remove pacedTrain after development pacedTrain feature
+  userPreferences: { safeWord: '', showPacedTrains: false },
   userRoles: [],
   account: {},
 };
@@ -45,7 +47,11 @@ export const userSlice = createSlice({
     setUserRoles(state, action: PayloadAction<BuiltinRole[] | undefined>) {
       state.userRoles = action.payload || [];
     },
-    updateUserPreferences(state, action: PayloadAction<{ safeWord: string }>) {
+    updateUserPreferences(
+      state,
+      // TODO PACEDTRAIN: Remove pacedTrain after development pacedTrain feature
+      action: PayloadAction<{ safeWord: string; showPacedTrains?: boolean }>
+    ) {
       state.userPreferences = action.payload;
     },
   },

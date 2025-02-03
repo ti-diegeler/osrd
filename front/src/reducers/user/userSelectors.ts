@@ -16,6 +16,9 @@ export const getUsername = makeUserSelector('username');
 export const getUserRoles = makeUserSelector('userRoles');
 export const getIsSuperUser = (state: RootState) => getUserRoles(state).includes('Superuser');
 
+// TODO PACEDTRAIN: Remove pacedTrain after development pacedTrain feature
+export const getShowPacedTrains = makeUserPreferencesSelector('showPacedTrains');
+
 const makeUserHasAllRequiredRolesSelector =
   (requiredRoles: BuiltinRole[]) => (state: RootState) => {
     const userRoles = getUserRoles(state);
