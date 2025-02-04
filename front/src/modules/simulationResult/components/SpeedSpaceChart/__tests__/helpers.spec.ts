@@ -117,7 +117,7 @@ describe('getProfileValue', () => {
       )
     ).toEqual({
       electricalProfile: 'incompatible',
-      color: 'rgb(171, 201, 133)',
+      color: 'rgb(47, 76, 38)',
     });
   });
 
@@ -126,7 +126,7 @@ describe('getProfileValue', () => {
       getProfileValue({ electrical_profile_type: 'profile', handled: false, profile: 'F' }, '1500V')
     ).toEqual({
       electricalProfile: 'incompatible',
-      color: 'rgb(171, 201, 133)',
+      color: 'rgb(47, 76, 38)',
     });
   });
 
@@ -135,8 +135,8 @@ describe('getProfileValue', () => {
       getProfileValue({ electrical_profile_type: 'profile', handled: true, profile: 'F' }, '1500V')
     ).toEqual({
       electricalProfile: 'F',
-      color: 'rgb(171, 201, 133)',
-      heightLevel: 0,
+      color: 'rgb(47, 76, 38)',
+      heightLevel: 8,
     });
   });
 });
@@ -188,8 +188,8 @@ describe('formatElectricalProfiles', () => {
         },
         value: {
           electricalProfile: 'O',
-          color: 'rgb(47, 76, 38)',
-          heightLevel: 8,
+          color: 'rgb(171, 201, 133)',
+          heightLevel: 0,
         },
       },
       {
@@ -199,8 +199,8 @@ describe('formatElectricalProfiles', () => {
         },
         value: {
           electricalProfile: 'A1',
-          color: 'rgb(79, 108, 62)',
-          heightLevel: 6,
+          color: 'rgb(142, 172, 111)',
+          heightLevel: 2,
         },
       },
       {
@@ -210,8 +210,8 @@ describe('formatElectricalProfiles', () => {
         },
         value: {
           electricalProfile: 'B',
-          color: 'rgb(93, 123, 73)',
-          heightLevel: 5,
+          color: 'rgb(125, 155, 98)',
+          heightLevel: 3,
         },
       },
     ];
