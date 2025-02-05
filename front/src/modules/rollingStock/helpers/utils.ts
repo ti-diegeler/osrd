@@ -236,18 +236,17 @@ export const checkRollingStockFormValidity = (
     return acc;
   }, {});
   const invalidFields = Object.keys(RS_REQUIRED_FIELDS).filter((field) => {
+    // We consider fields invalid if they are required and either absent or nullish
     const conditionForFieldBeingRequired = conditions[field];
-    const paramValue = rollingStockForm[field];
-    const isFieldInvalid =
-      !has(rollingStockForm, field) ||
-      isNil(isMultiUnitsParam(paramValue) ? paramValue.value : paramValue);
     const isRequired = conditionForFieldBeingRequired
       ? conditionForFieldBeingRequired(effortCurves)
       : true;
-    if (isRequired) {
-      return isFieldInvalid;
-    }
-    return false;
+    if (!isRequired) return false;
+
+    if (!has(rollingStockForm, field)) return true;
+
+    const paramValue = rollingStockForm[field as keyof RollingStockParametersValues];
+    return isNil(isMultiUnitsParam(paramValue) ? paramValue.value : paramValue);
   });
 
   let invalidEffortCurves: string[] = [];

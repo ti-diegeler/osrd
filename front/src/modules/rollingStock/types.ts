@@ -45,15 +45,6 @@ export type RollingStockParametersValidValues = {
 };
 
 export type RollingStockParametersValues = {
-  // TODO: remove this line in the type
-  [key: string]:
-    | string
-    | number
-    | null
-    | RollingStock['power_restrictions']
-    | undefined
-    | string[]
-    | MultiUnitsParameter;
   railjsonVersion: string;
   name: string;
   detail: string;
@@ -102,7 +93,7 @@ export type MultiUnit =
   | 'kN/(km/h)²/t';
 
 export type SchemaProperty = {
-  title: string;
+  title: keyof RollingStockParametersValues;
   type: string;
   side: string;
   format?: string;
