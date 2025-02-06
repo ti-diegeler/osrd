@@ -692,6 +692,10 @@
               z-index: 1;
             }
           }
+
+          &:hover:not(.selected, .modified, .invalid) {
+            background-color: var(--ambiantB15);
+          }
         }
 
         &:not(.with-details) {
