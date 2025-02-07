@@ -705,40 +705,36 @@ class STDCMPage extends HomePage {
   }
 
   async downloadSimulation(downloadDir: string): Promise<void> {
-    try {
-      // Wait until there are no network requests for stability
-      await this.page.waitForLoadState('networkidle');
+    // Wait until there are no network requests for stability
+    await this.page.waitForLoadState('networkidle');
 
-      // Get the download link element and suggested filename
-      const suggestedFilename = await this.downloadLink.getAttribute('download');
-      expect(suggestedFilename).toMatch(/^Stdcm.*\.pdf$/);
+    // Get the download link element and suggested filename
+    const suggestedFilename = await this.downloadLink.getAttribute('download');
+    expect(suggestedFilename).toMatch(/^Stdcm.*\.pdf$/);
 
-      const downloadPath = path.join(downloadDir, suggestedFilename!);
+    const downloadPath = path.join(downloadDir, suggestedFilename!);
 
-      await fs.promises.mkdir(downloadDir, { recursive: true });
+    await fs.promises.mkdir(downloadDir, { recursive: true });
 
-      // Get the file content from the `blob:` URL
-      const fileContent = await this.downloadSimulationButton.evaluate(async (el) => {
-        if (!(el instanceof HTMLAnchorElement)) {
-          throw new Error('Element is not an anchor tag');
-        }
+    // Get the file content from the `blob:` URL
+    const fileContent = await this.downloadSimulationButton.evaluate(async (el) => {
+      if (!(el instanceof HTMLAnchorElement)) {
+        throw new Error('Element is not an anchor tag');
+      }
 
-        const response = await fetch(el.href);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch the blob: ${response.status} ${response.statusText}`);
-        }
+      const response = await fetch(el.href);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch the blob: ${response.status} ${response.statusText}`);
+      }
 
-        const buffer = await response.arrayBuffer();
-        return Array.from(new Uint8Array(buffer));
-      });
+      const buffer = await response.arrayBuffer();
+      return Array.from(new Uint8Array(buffer));
+    });
 
-      // Write the file to the local file system
-      await fs.promises.writeFile(downloadPath, Buffer.from(fileContent));
+    // Write the file to the local file system
+    await fs.promises.writeFile(downloadPath, Buffer.from(fileContent));
 
-      logger.info(`The PDF was successfully downloaded to: ${downloadPath}`);
-    } catch (error) {
-      logger.error('Failed to download simulation', error);
-    }
+    logger.info(`The PDF was successfully downloaded to: ${downloadPath}`);
   }
 
   async startNewQuery() {
