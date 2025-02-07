@@ -711,7 +711,7 @@ class STDCMPage extends HomePage {
     await expect(this.startNewQueryWithDataButton).toBeVisible();
   }
 
-  async downloadSimulation(browserName: string, isLinkedTrain: boolean = false): Promise<void> {
+  async downloadSimulation(downloadDir: string): Promise<void> {
     try {
       // Wait until there are no network requests for stability
       await this.page.waitForLoadState('networkidle');
@@ -720,9 +720,6 @@ class STDCMPage extends HomePage {
       const suggestedFilename = await this.downloadLink.getAttribute('download');
       expect(suggestedFilename).toMatch(/^Stdcm.*\.pdf$/);
 
-      const downloadDir = isLinkedTrain
-        ? path.join('./tests/stdcm-results/linkedTrain', browserName)
-        : path.join('./tests/stdcm-results', browserName);
       const downloadPath = path.join(downloadDir, suggestedFilename!);
 
       await fs.promises.mkdir(downloadDir, { recursive: true });

@@ -51,7 +51,7 @@ test.describe('Verify stdcm simulation page', () => {
   });
 
   /** *************** Test 1 **************** */
-  test('Verify STDCM anterior linked train', async ({ browserName }) => {
+  test('Verify STDCM anterior linked train', async ({}, testInfo) => {
     await stdcmPage.fillAndVerifyConsistDetails(
       towedConsistDetails,
       fastRollingStockPrefilledValues.tonnage,
@@ -72,11 +72,11 @@ test.describe('Verify stdcm simulation page', () => {
       './tests/assets/stdcm/linkedTrain/anteriorLinkedTrainTable.json'
     );
     await stdcmPage.retainSimulation();
-    await stdcmPage.downloadSimulation(browserName, true);
+    await stdcmPage.downloadSimulation(testInfo.outputDir);
   });
 
   /** *************** Test 2 **************** */
-  test('Verify STDCM posterior linked train', async ({ browserName }) => {
+  test('Verify STDCM posterior linked train', async ({}, testInfo) => {
     await stdcmPage.fillAndVerifyConsistDetails(
       towedConsistDetails,
       fastRollingStockPrefilledValues.tonnage,
@@ -97,6 +97,6 @@ test.describe('Verify stdcm simulation page', () => {
       './tests/assets/stdcm/linkedTrain/posteriorLinkedTrainTable.json'
     );
     await stdcmPage.retainSimulation();
-    await stdcmPage.downloadSimulation(browserName, true);
+    await stdcmPage.downloadSimulation(testInfo.outputDir);
   });
 });

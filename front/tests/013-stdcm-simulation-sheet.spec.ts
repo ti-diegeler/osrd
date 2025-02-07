@@ -48,8 +48,10 @@ test.describe('Verify stdcm simulation page', () => {
     await waitForInfraStateToBeCached(infra.id);
   });
 
+  let downloadDir: string | undefined;
+
   /** *************** Test 1 **************** */
-  test('Verify STDCM stops and simulation sheet', async ({ browserName, context }) => {
+  test('Verify STDCM stops and simulation sheet', async ({ browserName, context }, testInfo) => {
     // Populate STDCM page with origin, destination, and via details
     await stdcmPage.fillAndVerifyConsistDetails(
       consistDetails,
@@ -77,7 +79,8 @@ test.describe('Verify stdcm simulation page', () => {
     await stdcmPage.displayAllOperationalPoints();
     await stdcmPage.verifyTableData('./tests/assets/stdcm/stdcmWithAllVia.json');
     await stdcmPage.retainSimulation();
-    await stdcmPage.downloadSimulation(browserName);
+    downloadDir = testInfo.outputDir;
+    await stdcmPage.downloadSimulation(downloadDir);
     // Reset and verify empty fields
     const [newPage] = await Promise.all([context.waitForEvent('page'), stdcmPage.startNewQuery()]);
     await newPage.waitForLoadState();
@@ -86,9 +89,8 @@ test.describe('Verify stdcm simulation page', () => {
   });
 
   /** *************** Test 2 **************** */
-  test('Verify simulation sheet content', async ({ browserName }) => {
-    const downloadDir = `./tests/stdcm-results/${browserName}`;
-    const pdfFilePath = findFirstPdf(downloadDir);
+  test('Verify simulation sheet content', async () => {
+    const pdfFilePath = findFirstPdf(downloadDir!);
 
     if (!pdfFilePath) {
       throw new Error(`No PDF files found in directory: ${downloadDir}`);
