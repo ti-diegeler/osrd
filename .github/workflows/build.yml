@@ -141,6 +141,12 @@ jobs:
         with:
           name: front-tests
           path: osrd-front-tests.tar
+      - name: Upload gateway-front artifact
+        uses: actions/upload-artifact@v4
+        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'gateway-front')
+        with:
+          name: gateway-front
+          path: osrd-gateway-front.tar
       - name: Upload gateway-standalone artifact
         uses: actions/upload-artifact@v4
         if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'gateway-standalone')
