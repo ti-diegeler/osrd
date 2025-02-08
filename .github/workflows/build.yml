@@ -105,54 +105,54 @@ jobs:
           echo "All retries failed, exiting."
           exit 1
 
-      - name: Upload core-build artifact
-        uses: actions/upload-artifact@v4
-        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'core-build')
-        with:
-          name: core-build
-          path: osrd-core-build.tar
-      - name: Upload editoast-test artifact
-        uses: actions/upload-artifact@v4
-        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'editoast-test')
-        with:
-          name: editoast-test
-          path: osrd-editoast-test.tar
-      - name: Upload editoast artifact
-        uses: actions/upload-artifact@v4
-        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'editoast')
-        with:
-          name: editoast
-          path: osrd-editoast.tar
-      - name: Upload gateway-test artifact
-        uses: actions/upload-artifact@v4
-        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'gateway-test')
-        with:
-          name: gateway-test
-          path: osrd-gateway-test.tar
-      - name: Upload front-tests artifact
-        uses: actions/upload-artifact@v4
-        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'front-tests')
-        with:
-          name: front-tests
-          path: osrd-front-tests.tar
-      - name: Upload front artifact
-        uses: actions/upload-artifact@v4
-        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'front-devel')
-        with:
-          name: front
-          path: osrd-front.tar
       - name: Upload core artifact
         uses: actions/upload-artifact@v4
         if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'core')
         with:
           name: core
           path: osrd-core.tar
+      - name: Upload core-build artifact
+        uses: actions/upload-artifact@v4
+        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'core-build')
+        with:
+          name: core-build
+          path: osrd-core-build.tar
+      - name: Upload editoast artifact
+        uses: actions/upload-artifact@v4
+        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'editoast')
+        with:
+          name: editoast
+          path: osrd-editoast.tar
+      - name: Upload editoast-test artifact
+        uses: actions/upload-artifact@v4
+        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'editoast-test')
+        with:
+          name: editoast-test
+          path: osrd-editoast-test.tar
+      - name: Upload front artifact
+        uses: actions/upload-artifact@v4
+        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'front-devel')
+        with:
+          name: front
+          path: osrd-front.tar
+      - name: Upload front-tests artifact
+        uses: actions/upload-artifact@v4
+        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'front-tests')
+        with:
+          name: front-tests
+          path: osrd-front-tests.tar
       - name: Upload gateway-standalone artifact
         uses: actions/upload-artifact@v4
         if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'gateway-standalone')
         with:
           name: gateway-standalone
           path: osrd-gateway-standalone.tar
+      - name: Upload gateway-test artifact
+        uses: actions/upload-artifact@v4
+        if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'gateway-test')
+        with:
+          name: gateway-test
+          path: osrd-gateway-test.tar
       - name: Upload osrdyne artifact
         uses: actions/upload-artifact@v4
         if: steps.bake-metadata.outputs.output_method == 'artifact' && contains(matrix.targets, 'osrdyne')
