@@ -129,8 +129,10 @@ const ItineraryMarkers = ({
 
   useEffect(() => {
     const fetchTrackSections = async () => {
-      const trackId = markersInformation.map((markerInfo) => markerInfo.op!.track);
-      setTrackSections(await getTrackSectionsByIds(trackId));
+      const trackIds = markersInformation
+        .map((markerInfo) => markerInfo.op?.track)
+        .filter((trackId) => trackId !== undefined);
+      setTrackSections(await getTrackSectionsByIds(trackIds));
     };
 
     if (pathStepsAndSuggestedOPs) fetchTrackSections();
