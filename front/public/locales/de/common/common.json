@@ -1,0 +1,24 @@
+{
+  "actions": {
+    "add": "Hinzufügen",
+    "collapse": "Einklappen",
+    "delete": "Löschen",
+    "expand": "Erweitern",
+    "merge": "Mit nächstem Abschnitt vereinigen",
+    "reset": "Zurücksetzen",
+    "split": "Trennen",
+    "translate": "Umschalten",
+    "zoom-in": "Vergrößern",
+    "zoom-out": "Verkleinern",
+    "deleteSelectionCount": "Möchten Sie {{items}} wirklich löschen?"
+  },
+  "navigation": {
+    "next": "Weiter",
+    "previous": "Zurück",
+    "goBack": "Zur letzten Seite",
+    "goHome": "Zur Startseite"
+  },
+  "begin": "Start",
+  "end": "Ende",
+  "value": "Wert"
+}

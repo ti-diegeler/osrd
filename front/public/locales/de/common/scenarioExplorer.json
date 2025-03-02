@@ -1,0 +1,15 @@
+{
+  "errorMessages": {
+    "error": "Ein Fehler ist aufgetreten",
+    "unableToRetrieveProjectsMessage": "Projekte laden ist nicht möglich"
+  },
+  "infraLegend": "Infra",
+  "noScenarioSelected": "Klicken Sie hier, um ein Szenario über ein Netz und einen entspechenden Fahrplan auszuwählen.",
+  "projectLegend": "Projekt",
+  "projects": "Projekte",
+  "scenarioExplorator": "Szenarienbrowser",
+  "scenarioLegend": "Szenario",
+  "scenarios": "Szenarien",
+  "studies": "Studien",
+  "studyLegend": "Studie"
+}

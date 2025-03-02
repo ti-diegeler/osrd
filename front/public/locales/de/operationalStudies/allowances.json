@@ -1,0 +1,28 @@
+{
+  "addAllowance": "Begrenzung hinzufügen",
+  "addLine": {
+    "beginPosition": "Von",
+    "distribution": "Verteilung",
+    "endPosition": "Nach",
+    "length": "Länge",
+    "value": "Wert"
+  },
+  "allowancesCount_one": "1 Intervall",
+  "allowancesCount_other": "{{ count }} Intervalle",
+  "allowancesCount_zero": "Keine Intervalle",
+  "cancel": "Abbrechen",
+  "deleteAllowance": "Begrenzung löschen",
+  "distribution": {
+    "linear": "linear",
+    "LINEAR": "Linear",
+    "mareco": "mareco",
+    "MARECO": "Mareco"
+  },
+  "engineeringAllowances": "Engineering allowance",
+  "missingPathFinding": "Bitte setzen Sie vor der Angabe einer Begrenzung einen Pfad",
+  "no-allowance": "Keine Begrenzung gesetzt",
+  "reset": "Zurücksetzen",
+  "saveAllowances": "Änderungen sichern",
+  "standardAllowance": "Begrenzung wiederherstellen",
+  "standardAllowanceIntervals": "Begrenzungsintervalle wiederherstellen"
+}

@@ -1,0 +1,41 @@
+{
+  "cancel": "Abbrechen",
+  "closeOSRDConfig": "Schließen",
+  "download": "Herunterladen",
+  "date": "DATUM",
+  "datetime": "Datum & Uhrzeit",
+  "endTime": "ENDE",
+  "errorMessages": {
+    "error": "Ein Fehler ist aufgetreten",
+    "errorEmptyFile": "Leere Datei",
+    "errorImport": "Datei konnte nicht zu TrainSchedule (Zugfahrplan) konvertiert werden",
+    "errorNoDate": "Sie müssen ein Datum angeben.",
+    "errorNoFrom": "Sie müssen einen Herkunftsort angeben.",
+    "errorNoTo": "Sie müssen einen Zielort angeben.",
+    "errorSameFromTo": "Herkunfts- und Zielort müssen sich unterscheiden.",
+    "errorInvalidFile": "Ungültige Datei."
+  },
+  "warningMessages": {
+    "warning": "Warnung",
+    "warningFilteredStepImport": "Es wurden einige ungültige Schritte entfernt, um den Import für Züge zu erlauben: {{trainNumbers}}"
+  },
+  "failure": "Operation fehlgeschlagen",
+  "from": "Herkunft",
+  "import": "Import",
+  "importTimetable": "Fahrplan importieren",
+  "inputPlaceholder": "Name, trigram",
+  "launchImport": "Import starten",
+  "noResults": "Kein Ergebnis",
+  "searchTimetable": "Fahrplan suchen",
+  "selectStation": "Betriebsstelle auswählen",
+  "startTime": "START",
+  "status": {
+    "invalidTrainSchedules_one": "Ungültiger Zugfahrplan.",
+    "invalidTrainSchedules": "Ungültige Zugfahrpläne.",
+    "successfulImport_one": "Ein Zug ist importiert.",
+    "successfulImport": "Alle Züge sind importiert."
+  },
+  "success": "Operation erfolgreich",
+  "to": "Ziel",
+  "trainsFound": "Züge gefunden"
+}

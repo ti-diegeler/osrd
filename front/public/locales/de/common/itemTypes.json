@@ -1,0 +1,8 @@
+{
+  "trains_one": "{{count}} Zug",
+  "trains_other": "{{count}} Züge",
+  "scenarios_one": "{{count}} Szenario",
+  "scenarios_other": "{{count}} Szenarien",
+  "studies_one": "{{count}} Studie",
+  "studies_other": "{{count}} Studien"
+}
