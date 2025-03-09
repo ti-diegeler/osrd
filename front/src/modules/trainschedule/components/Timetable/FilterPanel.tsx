@@ -3,7 +3,12 @@ import { X } from '@osrd-project/ui-icons';
 import cx from 'classnames';
 import { useTranslation } from 'react-i18next';
 
-import type { ValidityFilter, ScheduledPointsHonoredFilter, TimetableFilters } from './types';
+import type {
+  ValidityFilter,
+  ScheduledPointsHonoredFilter,
+  TimetableFilters,
+  TrainTypeFilter,
+} from './types';
 
 type FilterPanelProps = {
   toggleFilterPanel: () => void;
@@ -22,6 +27,8 @@ const FilterPanel = ({ toggleFilterPanel, timetableFilters }: FilterPanelProps) 
     setValidityFilter,
     scheduledPointsHonoredFilter,
     setScheduledPointsHonoredFilter,
+    trainTypeFilter,
+    setTrainTypeFilter,
     uniqueTags,
     selectedTags,
     setSelectedTags,
@@ -37,6 +44,12 @@ const FilterPanel = ({ toggleFilterPanel, timetableFilters }: FilterPanelProps) 
     { value: 'both', label: t('timetable.showAllTrains') },
     { value: 'honored', label: t('timetable.showHonoredTrains') },
     { value: 'notHonored', label: t('timetable.showNotHonoredTrains') },
+  ];
+
+  const trainTypeOptions: { value: TrainTypeFilter; label: string }[] = [
+    { value: 'both', label: t('timetable.showAllTrains') },
+    { value: 'pacedTrain', label: t('timetable.pacedTrain') },
+    { value: 'trainSchedule', label: t('timetable.trainSchedule') },
   ];
 
   const toggleTagSelection = (tag: string | null) => {
@@ -69,6 +82,8 @@ const FilterPanel = ({ toggleFilterPanel, timetableFilters }: FilterPanelProps) 
             id="timetable-label-filter"
             name="timetable-label-filter"
             label={t('timetable.filterLabel')}
+            narrow
+            small
             value={nameLabelFilter}
             onChange={(e) => setNameLabelFilter(e.target.value)}
             placeholder={t('filterPlaceholder')}
@@ -79,8 +94,10 @@ const FilterPanel = ({ toggleFilterPanel, timetableFilters }: FilterPanelProps) 
           <Select
             getOptionLabel={(option) => option.label}
             getOptionValue={(option) => option.value}
-            id="train-validity"
+            id="timetable-train-validity-filter"
             label={t('timetable.validityFilter')}
+            narrow
+            small
             onChange={(selectedOption) => {
               if (selectedOption) {
                 setValidityFilter(selectedOption.value);
@@ -92,14 +109,33 @@ const FilterPanel = ({ toggleFilterPanel, timetableFilters }: FilterPanelProps) 
               validityOptions[0]
             }
           />
+          <Select
+            getOptionLabel={(option) => option.label}
+            getOptionValue={(option) => option.value}
+            id="timetable-train-type-filter"
+            label={t('timetable.trainType')}
+            narrow
+            small
+            onChange={(selectedOption) => {
+              if (selectedOption) {
+                setTrainTypeFilter(selectedOption.value);
+              }
+            }}
+            options={trainTypeOptions}
+            value={
+              trainTypeOptions.find((option) => option.value === trainTypeFilter) ||
+              trainTypeOptions[0]
+            }
+          />
         </div>
-
         <div id="schedule-point-honored-and-rollingstock">
           <Input
             type="text"
             id="timetable-rollingstock-filter"
             name="timetable-rollingstock-filter"
             label={t('timetable.advancedFilterLabel')}
+            narrow
+            small
             value={rollingStockFilter}
             onChange={(e) => setRollingStockFilter(e.target.value)}
             placeholder={t('timetable.rollingStockFilterPlaceholder')}
@@ -110,8 +146,10 @@ const FilterPanel = ({ toggleFilterPanel, timetableFilters }: FilterPanelProps) 
           <Select
             getOptionLabel={(option) => option.label}
             getOptionValue={(option) => option.value}
-            id="train-keep-timetable"
+            id="timetable-train-punctuality-filter"
             label={t('timetable.punctuality')}
+            narrow
+            small
             onChange={(selectedOption) => {
               if (selectedOption) {
                 setScheduledPointsHonoredFilter(selectedOption.value);
@@ -126,9 +164,9 @@ const FilterPanel = ({ toggleFilterPanel, timetableFilters }: FilterPanelProps) 
           />
         </div>
       </div>
-      <div className="compositions-code">
-        <label htmlFor="composition-tag-filter">{t('timetable.compositionCodes')}</label>
-        <div className="composition-tag-filter" id="composition-tag-filter">
+      <div className="speed-limit-tag">
+        <label htmlFor="timetable-speed-limit-tag-filter">{t('timetable.speedLimitTags')}</label>
+        <div className="speed-limit-tag-filter" id="timetable-speed-limit-tag-filter">
           {uniqueTags.map((tag) => {
             const displayTag = tag !== 'NO CODE' ? tag : t('timetable.noSpeedLimitTagsShort');
             return (

@@ -1539,6 +1539,173 @@ paths:
       responses:
         '204':
           description: All paced_trains have been deleted
+  /paced_train/project_path:
+    post:
+      tags:
+      - paced_train
+      summary: Projects the space time curves and paths of a number of paced trains onto a given path
+      description: |-
+        - Returns 404 if the infra or any of the paced trains are not found
+        - Returns 200 with a hashmap of train_id to ProjectPathTrainResult
+
+        Paced trains that are invalid (pathfinding or simulation failed) are not included in the result
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectPathForm'
+        required: true
+      responses:
+        '200':
+          description: Project Path Output
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/ProjectPathTrainResult'
+  /paced_train/simulation_summary:
+    post:
+      tags:
+      - paced_train
+      summary: Associate each paced train id with its simulation summaries response
+      description: 'If the simulation fails, it associates the reason: pathfinding failed or running time failed'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - infra_id
+              - ids
+              properties:
+                electrical_profile_set_id:
+                  type: integer
+                  format: int64
+                  nullable: true
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                  uniqueItems: true
+                infra_id:
+                  type: integer
+                  format: int64
+        required: true
+      responses:
+        '200':
+          description: Associate each paced train id with its simulation summaries
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/SimulationSummaryResult'
+  /paced_train/{id}:
+    get:
+      tags:
+      - timetable
+      - paced_train
+      summary: Get a paced train by its ID
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '204':
+          description: The requested paced train
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PacedTrainResult'
+    put:
+      tags:
+      - timetable
+      - paced_train
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PacedTrainForm'
+        required: true
+      responses:
+        '200':
+          description: Paced train have been updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PacedTrainResult'
+  /paced_train/{id}/path:
+    get:
+      tags:
+      - paced_train
+      - pathfinding
+      summary: Get a path from a paced train given an infrastructure id and a paced train id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: infra_id
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: The path
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PathfindingResult'
+        '404':
+          description: Infrastructure or Train schedule not found
+  /paced_train/{id}/simulation:
+    get:
+      tags:
+      - train_schedule
+      summary: Retrieve the space, speed and time curve of a given train
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: infra_id
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: electrical_profile_set_id
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          nullable: true
+      responses:
+        '200':
+          description: Simulation Output
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationResponse'
   /projects:
     get:
       tags:
@@ -2819,6 +2986,54 @@ paths:
                 items:
                   $ref: '#/components/schemas/Conflict'
   /timetable/{id}/paced_trains:
+    get:
+      tags:
+      - timetable
+      - paced_train
+      summary: Return a specific timetable with its associated paced trains
+      parameters:
+      - name: id
+        in: path
+        description: A timetable ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          default: 1
+          minimum: 1
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+          default: 25
+          nullable: true
+          minimum: 1
+      responses:
+        '200':
+          description: Timetable with paced train ids
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/PaginationStats'
+                - type: object
+                  required:
+                  - results
+                  properties:
+                    results:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/PacedTrainResult'
+        '404':
+          description: Timetable not found
     post:
       tags:
       - timetable
@@ -3836,26 +4051,9 @@ components:
     BuiltinRole:
       type: string
       enum:
-      - Superuser
-      - OpsWrite
-      - OpsRead
-      - InfraRead
-      - InfraWrite
-      - RollingStockCollectionRead
-      - RollingStockCollectionWrite
-      - WorkScheduleWrite
-      - WorkScheduleRead
-      - MapRead
+      - Admin
       - Stdcm
-      - StdcmAdmin
-      - TimetableRead
-      - TimetableWrite
-      - DocumentRead
-      - DocumentWrite
-      - SubjectRead
-      - SubjectWrite
-      - RoleRead
-      - RoleWrite
+      - OperationalStudies
     Comfort:
       type: string
       enum:
@@ -4208,6 +4406,25 @@ components:
           type: string
           enum:
           - editoast:app_health:Database
+    EditoastAppHealthErrorOpenfga:
+      type: object
+      required:
+      - type
+      - status
+      - message
+      properties:
+        context:
+          type: object
+        message:
+          type: string
+        status:
+          type: integer
+          enum:
+          - 400
+        type:
+          type: string
+          enum:
+          - editoast:app_health:Openfga
     EditoastAppHealthErrorTimeout:
       type: object
       required:
@@ -4643,6 +4860,25 @@ components:
           type: string
           enum:
           - editoast:coreclient:GenericCoreError
+    EditoastCoreErrorMqClientError:
+      type: object
+      required:
+      - type
+      - status
+      - message
+      properties:
+        context:
+          type: object
+        message:
+          type: string
+        status:
+          type: integer
+          enum:
+          - 500
+        type:
+          type: string
+          enum:
+          - editoast:coreclient:MqClientError
     EditoastCoreErrorUnparsableErrorOutput:
       type: object
       required:
@@ -4854,6 +5090,7 @@ components:
       oneOf:
       - $ref: '#/components/schemas/EditoastAppHealthErrorCore'
       - $ref: '#/components/schemas/EditoastAppHealthErrorDatabase'
+      - $ref: '#/components/schemas/EditoastAppHealthErrorOpenfga'
       - $ref: '#/components/schemas/EditoastAppHealthErrorTimeout'
       - $ref: '#/components/schemas/EditoastAppHealthErrorValkey'
       - $ref: '#/components/schemas/EditoastAttachedErrorTrackNotFound'
@@ -4874,6 +5111,7 @@ components:
       - $ref: '#/components/schemas/EditoastCoreErrorConnectionResetByPeer'
       - $ref: '#/components/schemas/EditoastCoreErrorCoreResponseFormatError'
       - $ref: '#/components/schemas/EditoastCoreErrorGenericCoreError'
+      - $ref: '#/components/schemas/EditoastCoreErrorMqClientError'
       - $ref: '#/components/schemas/EditoastCoreErrorUnparsableErrorOutput'
       - $ref: '#/components/schemas/EditoastDatabaseAccessErrorDatabaseAccessError'
       - $ref: '#/components/schemas/EditoastDelimitedAreaErrorInvalidLocations'
@@ -4897,12 +5135,6 @@ components:
       - $ref: '#/components/schemas/EditoastListErrorsRailjsonWrongRailjsonVersionProvided'
       - $ref: '#/components/schemas/EditoastMacroNodeErrorNotFound'
       - $ref: '#/components/schemas/EditoastModelError'
-      - $ref: '#/components/schemas/EditoastMqClientErrorConnectionDoesNotExist'
-      - $ref: '#/components/schemas/EditoastMqClientErrorLapin'
-      - $ref: '#/components/schemas/EditoastMqClientErrorPoolChannelFail'
-      - $ref: '#/components/schemas/EditoastMqClientErrorResponseTimeout'
-      - $ref: '#/components/schemas/EditoastMqClientErrorSerialization'
-      - $ref: '#/components/schemas/EditoastMqClientErrorStatusParsing'
       - $ref: '#/components/schemas/EditoastNoSuchUserErrorNoSuchUser'
       - $ref: '#/components/schemas/EditoastOperationErrorEmptyId'
       - $ref: '#/components/schemas/EditoastOperationErrorInvalidPatch'
@@ -4910,6 +5142,7 @@ components:
       - $ref: '#/components/schemas/EditoastOperationErrorObjectNotFound'
       - $ref: '#/components/schemas/EditoastPacedTrainErrorBatchPacedTrainNotFound'
       - $ref: '#/components/schemas/EditoastPacedTrainErrorDatabase'
+      - $ref: '#/components/schemas/EditoastPacedTrainErrorPacedTrainNotFound'
       - $ref: '#/components/schemas/EditoastPaginationErrorInvalidPage'
       - $ref: '#/components/schemas/EditoastPaginationErrorInvalidPageSize'
       - $ref: '#/components/schemas/EditoastPathfindingErrorInfraNotFound'
@@ -5291,120 +5524,6 @@ components:
           type: string
           enum:
           - editoast:model:ModelError
-    EditoastMqClientErrorConnectionDoesNotExist:
-      type: object
-      required:
-      - type
-      - status
-      - message
-      properties:
-        context:
-          type: object
-        message:
-          type: string
-        status:
-          type: integer
-          enum:
-          - 500
-        type:
-          type: string
-          enum:
-          - editoast:coreclient:ConnectionDoesNotExist
-    EditoastMqClientErrorLapin:
-      type: object
-      required:
-      - type
-      - status
-      - message
-      properties:
-        context:
-          type: object
-        message:
-          type: string
-        status:
-          type: integer
-          enum:
-          - 500
-        type:
-          type: string
-          enum:
-          - editoast:coreclient:Lapin
-    EditoastMqClientErrorPoolChannelFail:
-      type: object
-      required:
-      - type
-      - status
-      - message
-      properties:
-        context:
-          type: object
-        message:
-          type: string
-        status:
-          type: integer
-          enum:
-          - 500
-        type:
-          type: string
-          enum:
-          - editoast:coreclient:PoolChannelFail
-    EditoastMqClientErrorResponseTimeout:
-      type: object
-      required:
-      - type
-      - status
-      - message
-      properties:
-        context:
-          type: object
-        message:
-          type: string
-        status:
-          type: integer
-          enum:
-          - 500
-        type:
-          type: string
-          enum:
-          - editoast:coreclient:ResponseTimeout
-    EditoastMqClientErrorSerialization:
-      type: object
-      required:
-      - type
-      - status
-      - message
-      properties:
-        context:
-          type: object
-        message:
-          type: string
-        status:
-          type: integer
-          enum:
-          - 500
-        type:
-          type: string
-          enum:
-          - editoast:coreclient:Serialization
-    EditoastMqClientErrorStatusParsing:
-      type: object
-      required:
-      - type
-      - status
-      - message
-      properties:
-        context:
-          type: object
-        message:
-          type: string
-        status:
-          type: integer
-          enum:
-          - 500
-        type:
-          type: string
-          enum:
-          - editoast:coreclient:StatusParsing
     EditoastNoSuchUserErrorNoSuchUser:
       type: object
       required:
@@ -5561,6 +5680,30 @@ components:
           type: string
           enum:
           - editoast:paced_train:Database
+    EditoastPacedTrainErrorPacedTrainNotFound:
+      type: object
+      required:
+      - type
+      - status
+      - message
+      properties:
+        context:
+          type: object
+          required:
+          - paced_train_id
+          properties:
+            paced_train_id:
+              type: integer
+        message:
+          type: string
+        status:
+          type: integer
+          enum:
+          - 404
+        type:
+          type: string
+          enum:
+          - editoast:paced_train:PacedTrainNotFound
     EditoastPaginationErrorInvalidPage:
       type: object
       required:
@@ -7072,7 +7215,7 @@ components:
       description: |-
         Braking parameters for ERTMS ETCS Level 2
         Commented with their names in ETCS specification document `SUBSET-026-3 v400.pdf` from the
-        file at https://www.era.europa.eu/system/files/2023-09/index004_-_SUBSET-026_v400.zip
+        file at <https://www.era.europa.eu/system/files/2023-09/index004_-_SUBSET-026_v400.zip>
       required:
       - gamma_emergency
       - gamma_service
@@ -8419,6 +8562,16 @@ components:
                 type: string
                 description: Time between two occurrences, an ISO 8601 format is expected
                 example: PT15M
+    PacedTrainForm:
+      allOf:
+      - $ref: '#/components/schemas/PacedTrainBase'
+      - type: object
+        properties:
+          timetable_id:
+            type: integer
+            format: int64
+            description: Timetable attached to the train schedule
+            nullable: true
     PacedTrainResult:
       allOf:
       - $ref: '#/components/schemas/PacedTrainBase'
@@ -9483,7 +9636,7 @@ components:
       type: string
       description: |-
         State of the signal where the train is received for its stop.
-        For (important) details, see https://osrd.fr/en/docs/reference/design-docs/timetable/#modifiable-fields.
+        For (important) details, see <https://osrd.fr/en/docs/reference/design-docs/timetable/#modifiable-fields>.
       enum:
       - OPEN
       - STOP

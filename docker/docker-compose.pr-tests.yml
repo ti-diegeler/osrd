@@ -122,17 +122,18 @@ services:
     ports: [ "8089:8089" ]
     environment:
       EDITOAST_PORT: 8089
-      ROOT_URL: "http://osrd-editoast-pr-tests:8089"
+      ROOT_URL: "http://localhost:4001/api"
       VALKEY_URL: "redis://valkey:6380"
       DATABASE_URL: "postgres://osrd:password@postgres:5433/osrd"
       TELEMETRY_KIND: "opentelemetry"
       TELEMETRY_ENDPOINT: "http://jaeger:4319"
       OSRD_MQ_URL: "amqp://osrd:password@osrd-rabbitmq-pr-tests:5673/%2f"
+      EDITOAST_OPENFGA_URL: "http://openfga:8191"
       OSRDYNE_API_URL: "http://osrd-osrdyne-pr-tests:4243/"
     command:
       - /bin/sh
       - -c
-      - "diesel migration run && exec editoast runserver"
+      - "diesel migration run --locked-schema && exec editoast runserver"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8089/health" ]
       start_period: 4s

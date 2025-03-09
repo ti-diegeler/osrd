@@ -26,11 +26,13 @@ services:
     network_mode: host
     environment:
       EDITOAST_PORT: 8090
+      ROOT_URL: "http://localhost:4000/api"
       OSRDYNE_API_URL: "http://localhost:4242"
       VALKEY_URL: "redis://localhost"
       DATABASE_URL: "postgres://osrd:password@localhost:5432/osrd"
       TELEMETRY_ENDPOINT: "http://localhost:4317"
       OSRD_MQ_URL: "amqp://osrd:password@127.0.0.1:5672/%2f"
+      EDITOAST_OPENFGA_URL: "http://localhost:8091"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8090/health" ]
 

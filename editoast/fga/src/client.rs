@@ -1,4 +1,5 @@
 mod authorization_models;
+mod healthz;
 mod queries;
 mod stores;
 mod tuples;
@@ -162,6 +163,13 @@ impl Client {
         Ok(client)
     }
 
+    pub async fn is_healthy(&self) -> Result<bool, RequestFailure> {
+        Ok(matches!(
+            self.get_healthz().await?,
+            healthz::Health::Serving
+        ))
+    }
+
     pub fn stores(&self) -> impl stream::TryStream<Ok = Store, Error = RequestFailure> + '_ {
         Continuation::stream(move |continuation| {
             async move {
@@ -179,7 +187,7 @@ impl Client {
             .stores()
             .try_filter(|Store { name, .. }| future::ready(name == store_name));
         futures::pin_mut!(stream);
-        let store = stream.try_next().await?.into_iter().last();
+        let store = stream.try_next().await?.into_iter().next_back();
         Ok(store)
     }
 
@@ -246,9 +254,12 @@ impl Client {
     /// If the tuple slice is more than 100 elements, an error will be returned.
     /// If you want them to be chunked into several requests, or if your tuples cannot
     /// be monomorphized into a single type, use [Client::prepare_writes] instead.
-    pub async fn write_tuples<'a, R: Relation, U: AsUser<User = R::User>>(
+    ///
+    /// Warning: just like OpenFGA's Write API, this function is **not** idempotent.
+    /// If a tuple is written twice, the second write will fail.
+    pub async fn write_tuples<R: Relation, U: AsUser<User = R::User>>(
         &self,
-        tuples: &[Tuple<'a, R, U>],
+        tuples: &[Tuple<'_, R, U>],
     ) -> Result<(), Either<RequestFailure, TooManyTuples>> {
         if tuples.len() > OPENFGA_WRITES_MAX_TUPLES {
             return Err(Either::Right(TooManyTuples {
@@ -258,7 +269,7 @@ impl Client {
         }
         self.post_stores_write(
             &self.store.id,
-            &tuples.into_iter().map_into().collect::<Vec<_>>(),
+            &tuples.iter().map_into().collect::<Vec<_>>(),
             &[],
             self.authorization_model_id.clone(),
         )
@@ -278,6 +289,8 @@ impl Client {
     /// after a [PreparedWrites::push]. So any form of post-processing is impossible.
     /// Likewise, once a [Tuple] is injected into [PreparedWrites], all its typing information
     /// is lost.
+    ///
+    /// Like [Client::write_tuples], this function is not idempotent.
     pub fn prepare_writes(&self) -> PreparedWrites<'_> {
         PreparedWrites {
             writes: Vec::new(),
@@ -285,9 +298,58 @@ impl Client {
         }
     }
 
-    pub async fn check<'a, R: Relation>(
+    /// Deletes up to 100 tuples in OpenFGA
+    ///
+    /// If the tuple slice is more than 100 elements, an error will be returned.
+    /// If you want them to be chunked into several requests, or if your tuples cannot
+    /// be monomorphized into a single type, use [Client::prepare_deletes] instead.
+    ///
+    /// Warning: just like OpenFGA's Write API, this function is **not** idempotent.
+    /// If a tuple is deleted twice, the second delete will fail.
+    pub async fn delete_tuples<R: Relation, U: AsUser<User = R::User>>(
         &self,
-        Check { user, object }: Check<'a, R>,
+        tuples: &[Tuple<'_, R, U>],
+    ) -> Result<(), Either<RequestFailure, TooManyTuples>> {
+        if tuples.len() > OPENFGA_WRITES_MAX_TUPLES {
+            return Err(Either::Right(TooManyTuples {
+                max: OPENFGA_WRITES_MAX_TUPLES,
+                provided_count: tuples.len(),
+            }));
+        }
+        self.post_stores_write(
+            &self.store.id,
+            &[],
+            &tuples.iter().map_into().collect::<Vec<_>>(),
+            self.authorization_model_id.clone(),
+        )
+        .await
+        .map_err(Either::Left)
+    }
+
+    /// Prepares multiple delete requests to OpenFGA
+    ///
+    /// OpenFGA Writes API do not accept more than 100 tuples per request.
+    /// The [PreparedDeletes] type returned by this function accepts any number
+    /// of tuples through [PreparedDeletes::push] and will chunk them into
+    /// requests of 100 tuples each. The requests are sent concurrently when
+    /// [PreparedDeletes::execute] is called.
+    ///
+    /// Beware that the tuples injected into [PreparedDeletes] cannot be accessed
+    /// after a [PreparedDeletes::push]. So any form of post-processing is impossible.
+    /// Likewise, once a [Tuple] is injected into [PreparedDeletes], all its typing information
+    /// is lost.
+    ///
+    /// Like [Client::delete_tuples], this function is not idempotent.
+    pub fn prepare_deletes(&self) -> PreparedDeletes<'_> {
+        PreparedDeletes {
+            deletes: Vec::new(),
+            client: self,
+        }
+    }
+
+    pub async fn check<R: Relation>(
+        &self,
+        Check { user, object }: Check<'_, R>,
     ) -> Result<bool, RequestFailure> {
         self.post_stores_check(
             &self.store.id,
@@ -302,9 +364,9 @@ impl Client {
         .await
     }
 
-    pub async fn list_objects<'a, R: Relation, U: AsUser<User = R::User>>(
+    pub async fn list_objects<R: Relation, U: AsUser<User = R::User>>(
         &self,
-        QueryObjects(user, _): QueryObjects<'a, R, U>,
+        QueryObjects(user, _): QueryObjects<'_, R, U>,
     ) -> Result<Vec<R::Object>, QueryError> {
         let objects = self
             .post_stores_list_objects(
@@ -329,9 +391,9 @@ impl Client {
     /// will also be returned.
     ///
     /// If you want to query the usersets related to the object instead, use `Client::query_usersets`.
-    pub async fn list_users<'a, R: Relation>(
+    pub async fn list_users<R: Relation>(
         &self,
-        QueryUsers(object): QueryUsers<'a, R>,
+        QueryUsers(object): QueryUsers<'_, R>,
     ) -> Result<UserList<R::User>, RequestFailure> {
         let raw_users = self
             .post_stores_list_users(
@@ -342,7 +404,7 @@ impl Client {
                     r#type: <R::User as crate::model::Type>::NAMESPACE,
                 },
                 None,
-                self.authorization_model_id.as_ref().map(String::as_str),
+                self.authorization_model_id.as_deref(),
                 None,
             )
             .await?;
@@ -379,7 +441,7 @@ impl Client {
     /// # use fga::fga;
     /// # #[tokio::main]
     /// # async fn main() {
-    /// # let mut client = fga::client::Client::try_new_store("doctest_list_usersets".to_owned(), settings()).await.unwrap();
+    /// # let mut client = fga::Client::try_new_store("doctest_list_usersets".to_owned(), settings()).await.unwrap();
     /// # client.update_authorization_model(&fga::compile_model(include_str!("../tests/doctest.fga"))).await.unwrap();
     /// // define can_read: reader or writer
     /// client.prepare_writes()
@@ -397,9 +459,9 @@ impl Client {
     /// assert!(groups.contains(&fga!(Group:"friends")));
     /// assert!(groups.contains(&fga!(Group:"bosses")));
     /// # }
-    pub async fn list_usersets<'a, R: Relation, S: Relation>(
+    pub async fn list_usersets<R: Relation, S: Relation>(
         &self,
-        QueryUsersets(object, _): QueryUsersets<'a, R, S>,
+        QueryUsersets(object, _): QueryUsersets<'_, R, S>,
     ) -> Result<Vec<S::Object>, RequestFailure> {
         let users = self
             .post_stores_list_users(
@@ -411,7 +473,7 @@ impl Client {
                     relation: S::NAME,
                 },
                 None,
-                self.authorization_model_id.as_ref().map(String::as_str),
+                self.authorization_model_id.as_deref(),
                 None,
             )
             .await?;
@@ -445,10 +507,7 @@ pub struct PreparedWrites<'a> {
 }
 
 impl PreparedWrites<'_> {
-    pub fn push<'a, R: Relation, U: AsUser<User = R::User>>(
-        mut self,
-        tuple: &Tuple<'_, R, U>,
-    ) -> Self {
+    pub fn push<R: Relation, U: AsUser<User = R::User>>(mut self, tuple: &Tuple<'_, R, U>) -> Self {
         self.writes.push(RawTuple::from(tuple));
         self
     }
@@ -469,6 +528,43 @@ impl PreparedWrites<'_> {
                         &self.client.store.id,
                         chunk,
                         &[],
+                        self.client.authorization_model_id.clone(),
+                    )
+                    .in_current_span()
+            })
+            .collect_vec();
+        futures::future::try_join_all(futs).await?;
+        Ok(())
+    }
+}
+
+pub struct PreparedDeletes<'a> {
+    deletes: Vec<RawTuple>,
+    client: &'a Client,
+}
+
+impl PreparedDeletes<'_> {
+    pub fn push<R: Relation, U: AsUser<User = R::User>>(mut self, tuple: &Tuple<'_, R, U>) -> Self {
+        self.deletes.push(RawTuple::from(tuple));
+        self
+    }
+
+    /// Concurrently sends delete requests to OpenFGA in 100-tuple chunks
+    ///
+    /// /!\ WARNING /!\ No transactional state is set up, so should any request fail,
+    /// the tuples deleted by other successful requests will remain deleted in OpenFGA.
+    /// This function also returns at the first failing request, so OpenFGA may still
+    /// delete some tuples **after** this function exits.
+    pub async fn execute(self) -> Result<(), RequestFailure> {
+        let futs = self
+            .deletes
+            .chunks(100)
+            .map(|chunk| {
+                self.client
+                    .post_stores_write(
+                        &self.client.store.id,
+                        &[],
+                        chunk,
                         self.client.authorization_model_id.clone(),
                     )
                     .in_current_span()
@@ -644,7 +740,7 @@ impl Continuation {
                     return Ok::<_, RequestFailure>(None);
                 }
                 let (items, continuation) = f(continuation).await?;
-                Ok(Some((items, Continuation::from(continuation))))
+                Ok(Some((items, continuation)))
             })
         });
 
@@ -714,10 +810,17 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn is_healthy() {
+        setup_tracing();
+        let client = test_client!();
+        assert!(client.is_healthy().await.unwrap());
+    }
+
     impl Client {
         // TODO: comment about tokio::test
         #[track_caller]
-        fn assert_check<'a, R: Relation>(&self, check: Check<'a, R>) -> &Self {
+        fn assert_check<R: Relation>(&self, check: Check<'_, R>) -> &Self {
             let error = format!("{check:?} doesn't hold, WWWHHHHYYYYY???");
             let ok = futures::executor::block_on(check.fetch(self)).unwrap();
             assert!(ok, "{error}");
@@ -725,7 +828,7 @@ mod tests {
         }
 
         #[track_caller]
-        fn assert_check_not<'a, R: Relation>(&self, check: Check<'a, R>) -> &Self {
+        fn assert_check_not<R: Relation>(&self, check: Check<'_, R>) -> &Self {
             let error = format!("{check:?} does hold, it shouldn't tho");
             let ok = futures::executor::block_on(check.fetch(self)).unwrap();
             assert!(!ok, "{error}");
@@ -733,7 +836,7 @@ mod tests {
         }
     }
 
-    const MODEL: &'static str = include_str!("../tests/model.fga");
+    const MODEL: &str = include_str!("../tests/model.fga");
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn persisted_auth_model_id_in_client() {
@@ -1001,5 +1104,60 @@ mod tests {
             groups,
             vec![fga!(Group:"company"), fga!(Group:"competitor")]
         );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn delete_tuples() {
+        setup_tracing();
+        let model = compile_model(MODEL);
+        let mut client = test_client!();
+        client.update_authorization_model(&model).await.unwrap();
+
+        client
+            .write_tuples(&[
+                fga!(Infra:"france"#reader@User:"alice"),
+                fga!(Infra:"espagne"#reader@User:"bob"),
+            ])
+            .await
+            .unwrap();
+
+        client
+            .delete_tuples(&[fga!(Infra:"france"#reader@User:"alice")])
+            .await
+            .unwrap();
+
+        client
+            .assert_check_not(Infra::can_read().check(&fga!(User:"alice"), &fga!(Infra:"france")))
+            .assert_check(Infra::can_read().check(&fga!(User:"bob"), &fga!(Infra:"espagne")));
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn prepare_deletes() {
+        setup_tracing();
+        let model = compile_model(MODEL);
+        let mut client = test_client!();
+        client.update_authorization_model(&model).await.unwrap();
+
+        client
+            .write_tuples(&[
+                fga!(Infra:"france"#reader@User:"alice"),
+                fga!(Infra:"espagne"#reader@User:"bob"),
+                fga!(Infra:"germany"#reader@User:"charlie"),
+            ])
+            .await
+            .unwrap();
+
+        client
+            .prepare_deletes()
+            .push(&fga!(Infra:"france"#reader@User:"alice"))
+            .push(&fga!(Infra:"espagne"#reader@User:"bob"))
+            .execute()
+            .await
+            .unwrap();
+
+        client
+            .assert_check_not(Infra::can_read().check(&fga!(User:"alice"), &fga!(Infra:"france")))
+            .assert_check_not(Infra::can_read().check(&fga!(User:"bob"), &fga!(Infra:"espagne")))
+            .assert_check(Infra::can_read().check(&fga!(User:"charlie"), &fga!(Infra:"germany")));
     }
 }

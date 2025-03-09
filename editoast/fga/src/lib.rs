@@ -226,6 +226,8 @@
 pub mod client;
 pub mod model;
 
+pub use client::Client;
+
 pub use fga_derive::Object;
 pub use fga_derive::Type;
 pub use fga_derive::User;
@@ -319,70 +321,6 @@ pub fn compile_model(model: &str) -> serde_json::Value {
         .expect("should work—is `fga` CLI installed and in $PATH? https://github.com/openfga/cli")
         .stdout;
     serde_json::from_slice(json.as_slice()).expect("invalid fga transform output")
-}
-
-#[cfg(test)]
-mod defs {
-    use derive_more::From;
-
-    // We can't use the derive macros `fga::Type`, `fga::User` and `fga::Object` in the tests
-    // as we're still in the `fga` crate.
-    macro_rules! fga_type {
-        (@ $vis:vis struct $name:ident $ns:literal) => {
-            #[derive(Debug, From, PartialEq, Eq, PartialOrd, Ord, Clone)]
-            pub struct $name(#[from] pub String);
-            #[automatically_derived]
-            impl crate::model::Type for $name {
-                const NAMESPACE: &'static str = $ns;
-                fn id(&self) -> &str {
-                    self.0.as_str()
-                }
-            }
-        };
-        (@ $name:ident : User) => {
-            #[automatically_derived]
-            impl crate::model::User for $name {}
-        };
-        (@ $name:ident : Object) => {
-            #[automatically_derived]
-            impl crate::model::Object for $name {}
-        };
-        ($vis:vis struct $name:ident($ns:literal) : $($derive:ident),+) => {
-            fga_type!(@ $vis struct $name $ns);
-            $(fga_type!(@ $name : $derive);)*
-
-            #[allow(unused)]
-            macro_rules! $name {
-                ($s:literal) => {
-                    $name($s.to_string())
-                };
-            }
-        };
-    }
-
-    fga_type!(pub struct Role("role"): User);
-    fga_type!(pub struct User("user"): User, Object);
-    fga_type!(pub struct Group("group"): User, Object);
-    fga_type!(pub struct Infra("infra"): Object);
-
-    relations! {
-        User {
-            role: Role,
-            group: Group,
-            manager: User
-        },
-        Group {
-            role: Role,
-            member: User,
-            manager: User
-        },
-        Infra {
-            reader: User,
-            writer: User,
-            can_read: User,
-            can_write: User
-        }
-    }
 }
 
 /// Type-safe OpenFGA literals
@@ -549,4 +487,68 @@ fn connection_settings() -> client::ConnectionSettings {
         .parse()
         .expect("invalid port");
     client::ConnectionSettings::new(address, port).reset_store()
+}
+
+#[cfg(test)]
+mod defs {
+    use derive_more::From;
+
+    // We can't use the derive macros `fga::Type`, `fga::User` and `fga::Object` in the tests
+    // as we're still in the `fga` crate.
+    macro_rules! fga_type {
+        (@ $vis:vis struct $name:ident $ns:literal) => {
+            #[derive(Debug, From, PartialEq, Eq, PartialOrd, Ord, Clone)]
+            pub struct $name(#[from] pub String);
+            #[automatically_derived]
+            impl crate::model::Type for $name {
+                const NAMESPACE: &'static str = $ns;
+                fn id(&self) -> &str {
+                    self.0.as_str()
+                }
+            }
+        };
+        (@ $name:ident : User) => {
+            #[automatically_derived]
+            impl crate::model::User for $name {}
+        };
+        (@ $name:ident : Object) => {
+            #[automatically_derived]
+            impl crate::model::Object for $name {}
+        };
+        ($vis:vis struct $name:ident($ns:literal) : $($derive:ident),+) => {
+            fga_type!(@ $vis struct $name $ns);
+            $(fga_type!(@ $name : $derive);)*
+
+            #[allow(unused)]
+            macro_rules! $name {
+                ($s:literal) => {
+                    $name($s.to_string())
+                };
+            }
+        };
+    }
+
+    fga_type!(pub struct Role("role"): User);
+    fga_type!(pub struct User("user"): User, Object);
+    fga_type!(pub struct Group("group"): User, Object);
+    fga_type!(pub struct Infra("infra"): Object);
+
+    relations! {
+        User {
+            role: Role,
+            group: Group,
+            manager: User
+        },
+        Group {
+            role: Role,
+            member: User,
+            manager: User
+        },
+        Infra {
+            reader: User,
+            writer: User,
+            can_read: User,
+            can_write: User
+        }
+    }
 }

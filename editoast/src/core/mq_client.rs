@@ -1,5 +1,4 @@
 use deadpool::managed::{Manager, Metrics, Pool, RecycleError, RecycleResult};
-use editoast_derive::EditoastError;
 use futures_util::StreamExt;
 use itertools::Itertools;
 use lapin::{
@@ -161,26 +160,19 @@ pub struct Options {
     pub num_channels: usize,
 }
 
-#[derive(Debug, Error, EditoastError)]
-#[editoast_error(base_id = "coreclient")]
+#[derive(Debug, Error)]
 pub enum MqClientError {
     #[error("AMQP error: {0}")]
-    #[editoast_error(status = "500")]
     Lapin(#[from] lapin::Error),
     #[error("Cannot serialize request: {0}")]
-    #[editoast_error(status = "500")]
     Serialization(serde_json::Error),
     #[error("Cannot parse response status")]
-    #[editoast_error(status = "500")]
     StatusParsing,
     #[error("Response timeout")]
-    #[editoast_error(status = "500")]
     ResponseTimeout,
     #[error("Connection does not exist")]
-    #[editoast_error(status = "500")]
     ConnectionDoesNotExist,
     #[error("Fail to pool a channel")]
-    #[editoast_error(status = "500")]
     PoolChannelFail,
 }
 
@@ -300,6 +292,10 @@ impl RabbitMQClient {
         }
     }
 
+    // Left here because its isolated, its not increasing the surface of attack,
+    // its not making the maintenance more complex since it is small
+    // and the API is complete with it since it is part of the API
+    // we designed around RMQ.
     #[allow(dead_code)]
     pub async fn call<T>(
         &self,

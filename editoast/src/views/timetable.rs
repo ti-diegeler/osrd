@@ -12,8 +12,9 @@ use axum::Extension;
 use derivative::Derivative;
 use editoast_authz::BuiltinRole;
 use editoast_derive::EditoastError;
-
+use editoast_models::DbConnectionPoolV2;
 use editoast_schemas::paced_train::PacedTrainBase;
+use editoast_schemas::train_schedule::TrainScheduleBase;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -21,6 +22,10 @@ use thiserror::Error;
 use utoipa::IntoParams;
 use utoipa::ToSchema;
 
+use super::paced_train::PacedTrainResult;
+use super::pagination::PaginatedList as _;
+use super::pagination::PaginationQueryParams;
+use super::pagination::PaginationStats;
 use crate::core::conflict_detection::Conflict;
 use crate::core::conflict_detection::ConflictDetectionRequest;
 use crate::core::conflict_detection::TrainRequirements;
@@ -42,24 +47,21 @@ use crate::views::AuthenticationExt;
 use crate::views::AuthorizationError;
 use crate::AppState;
 use crate::RetrieveBatch;
-use editoast_models::DbConnectionPoolV2;
-use editoast_schemas::train_schedule::TrainScheduleBase;
-
-use super::pagination::PaginatedList as _;
-use super::pagination::PaginationQueryParams;
-use super::pagination::PaginationStats;
-
-use super::paced_train::PacedTrainResult;
 
 crate::routes! {
     "/timetable" => {
         post,
         "/{id}" => {
             delete,
-            "/train_schedules" => get,
-            "/train_schedules" => train_schedule,
+            "/train_schedules" => {
+                 get_train_schedules,
+                 post_train_schedule,
+            },
             "/conflicts" => conflicts,
-            "/paced_trains" => paced_train,
+            "/paced_trains" => {
+                get_paced_trains,
+                post_paced_train,
+            },
             &stdcm,
         },
     },
@@ -142,14 +144,14 @@ struct ListTrainSchedulesResponse {
         (status = 404, description = "Timetable not found"),
     ),
 )]
-async fn get(
+async fn get_train_schedules(
     State(db_pool): State<DbConnectionPoolV2>,
     Extension(auth): AuthenticationExt,
     Path(TimetableIdParam { id: timetable_id }): Path<TimetableIdParam>,
     Query(pagination_params): Query<PaginationQueryParams>,
 ) -> Result<Json<ListTrainSchedulesResponse>> {
     let authorized = auth
-        .check_roles([BuiltinRole::TimetableRead].into())
+        .check_roles([BuiltinRole::OperationalStudies, BuiltinRole::Stdcm].into())
         .await
         .map_err(AuthorizationError::AuthError)?;
     if !authorized {
@@ -157,10 +159,10 @@ async fn get(
     }
 
     let conn = &mut db_pool.get().await?;
-    Timetable::retrieve_or_fail(conn, timetable_id, || TimetableError::NotFound {
-        timetable_id,
-    })
-    .await?;
+    let timetable_exists = Timetable::exists(conn, timetable_id).await?;
+    if !timetable_exists {
+        return Err(TimetableError::NotFound { timetable_id }.into());
+    }
 
     let settings = pagination_params
         .validate(25)?
@@ -187,7 +189,7 @@ async fn post(
     Extension(auth): AuthenticationExt,
 ) -> Result<Json<TimetableResult>> {
     let authorized = auth
-        .check_roles([BuiltinRole::TimetableWrite].into())
+        .check_roles([BuiltinRole::OperationalStudies].into())
         .await
         .map_err(AuthorizationError::AuthError)?;
     if !authorized {
@@ -217,7 +219,7 @@ async fn delete(
     Path(TimetableIdParam { id: timetable_id }): Path<TimetableIdParam>,
 ) -> Result<impl IntoResponse> {
     let authorized = auth
-        .check_roles([BuiltinRole::TimetableWrite].into())
+        .check_roles([BuiltinRole::OperationalStudies].into())
         .await
         .map_err(AuthorizationError::AuthError)?;
     if !authorized {
@@ -242,14 +244,14 @@ async fn delete(
         (status = 200, description = "The created train schedules", body = Vec<TrainScheduleResult>)
     )
 )]
-async fn train_schedule(
+async fn post_train_schedule(
     State(db_pool): State<DbConnectionPoolV2>,
     Extension(auth): AuthenticationExt,
     Path(TimetableIdParam { id: timetable_id }): Path<TimetableIdParam>,
     Json(train_schedules): Json<Vec<TrainScheduleBase>>,
 ) -> Result<Json<Vec<TrainScheduleResult>>> {
     let authorized = auth
-        .check_roles([BuiltinRole::TimetableWrite].into())
+        .check_roles([BuiltinRole::OperationalStudies].into())
         .await
         .map_err(AuthorizationError::AuthError)?;
     if !authorized {
@@ -258,10 +260,11 @@ async fn train_schedule(
 
     let conn = &mut db_pool.get().await?;
 
-    TimetableWithTrains::retrieve_or_fail(conn, timetable_id, || TimetableError::NotFound {
-        timetable_id,
-    })
-    .await?;
+    let timetable_exists = Timetable::exists(conn, timetable_id).await?;
+    if !timetable_exists {
+        return Err(TimetableError::NotFound { timetable_id }.into());
+    }
+
     let changesets: Vec<TrainScheduleChangeset> = train_schedules
         .into_iter()
         .map(|ts| TrainScheduleForm {
@@ -286,14 +289,14 @@ async fn train_schedule(
         (status = 200, description = "The created paced trains", body = Vec<PacedTrainResult>)
     )
 )]
-async fn paced_train(
+async fn post_paced_train(
     State(db_pool): State<DbConnectionPoolV2>,
     Extension(auth): AuthenticationExt,
     Path(TimetableIdParam { id: timetable_id }): Path<TimetableIdParam>,
     Json(paced_trains): Json<Vec<PacedTrainBase>>,
 ) -> Result<Json<Vec<PacedTrainResult>>> {
     let authorized = auth
-        .check_roles([BuiltinRole::TimetableWrite].into())
+        .check_roles([BuiltinRole::OperationalStudies].into())
         .await
         .map_err(AuthorizationError::AuthError)?;
     if !authorized {
@@ -306,6 +309,7 @@ async fn paced_train(
     if !timetable_exists {
         return Err(TimetableError::NotFound { timetable_id }.into());
     }
+
     let changesets = paced_trains
         .into_iter()
         .map(PacedTrainChangeset::from)
@@ -315,6 +319,58 @@ async fn paced_train(
     // Create a batch of paced trains
     let paced_trains: Vec<_> = PacedTrain::create_batch(conn, changesets).await?;
     Ok(Json(paced_trains.into_iter().map_into().collect()))
+}
+
+#[derive(Serialize, ToSchema, Debug)]
+#[cfg_attr(test, derive(Deserialize))]
+struct ListPacedTrainsResponse {
+    #[schema(value_type = Vec<PacedTrainResult>)]
+    results: Vec<PacedTrainResult>,
+    #[serde(flatten)]
+    stats: PaginationStats,
+}
+
+/// Return a specific timetable with its associated paced trains
+#[utoipa::path(
+    get, path = "",
+    tag = "timetable,paced_train",
+    params(TimetableIdParam, PaginationQueryParams),
+    responses(
+        (status = 200, description = "Timetable with paced train ids", body = inline(ListPacedTrainsResponse)),
+        (status = 404, description = "Timetable not found"),
+    ),
+)]
+async fn get_paced_trains(
+    State(db_pool): State<DbConnectionPoolV2>,
+    Extension(auth): AuthenticationExt,
+    Path(TimetableIdParam { id: timetable_id }): Path<TimetableIdParam>,
+    Query(pagination_params): Query<PaginationQueryParams>,
+) -> Result<Json<ListPacedTrainsResponse>> {
+    let authorized = auth
+        .check_roles([BuiltinRole::OperationalStudies].into())
+        .await
+        .map_err(AuthorizationError::AuthError)?;
+    if !authorized {
+        return Err(AuthorizationError::Forbidden.into());
+    }
+
+    let conn = &mut db_pool.get().await?;
+
+    let timetable_exists = Timetable::exists(conn, timetable_id).await?;
+    if !timetable_exists {
+        return Err(TimetableError::NotFound { timetable_id }.into());
+    }
+
+    let settings = pagination_params
+        .validate(25)?
+        .into_selection_settings()
+        .filter(move || PacedTrain::TIMETABLE_ID.eq(timetable_id));
+
+    let (paced_trains, stats) = PacedTrain::list_paginated(conn, settings).await?;
+
+    let results = paced_trains.into_iter().map_into().collect();
+
+    Ok(Json(ListPacedTrainsResponse { stats, results }))
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, IntoParams, ToSchema)]
@@ -353,7 +409,7 @@ async fn conflicts(
     }): Query<ElectricalProfileSetIdQueryParam>,
 ) -> Result<Json<Vec<Conflict>>> {
     let authorized = auth
-        .check_roles([BuiltinRole::InfraRead, BuiltinRole::TimetableRead].into())
+        .check_roles([BuiltinRole::OperationalStudies, BuiltinRole::Stdcm].into())
         .await
         .map_err(AuthorizationError::AuthError)?;
     if !authorized {
@@ -419,11 +475,14 @@ async fn conflicts(
 #[cfg(test)]
 mod tests {
     use axum::http::StatusCode;
+    use chrono::Duration;
     use pretty_assertions::assert_eq;
     use rstest::rstest;
 
     use super::*;
+    use crate::error::InternalError;
     use crate::models::fixtures::create_timetable;
+    use crate::models::fixtures::simple_paced_train_base;
     use crate::views::test_app::TestAppBuilder;
 
     #[rstest]
@@ -483,5 +542,85 @@ mod tests {
             .expect("Failed to check if timetable exists");
 
         assert!(!exists);
+    }
+
+    #[rstest]
+    async fn create_paced_train() {
+        let app = TestAppBuilder::default_app();
+        let pool = app.db_pool();
+
+        let timetable = create_timetable(&mut pool.get_ok()).await;
+        let paced_train_1 = simple_paced_train_base();
+        let mut paced_train_2 = simple_paced_train_base();
+        paced_train_2.paced.duration = Duration::minutes(120).try_into().unwrap();
+        paced_train_2.paced.step = Duration::seconds(30).try_into().unwrap();
+
+        let paced_trains = vec![paced_train_1, paced_train_2];
+
+        let request = app
+            .post(format!("/timetable/{}/paced_trains", timetable.id).as_str())
+            .json(&paced_trains);
+
+        let response: Vec<PacedTrainResult> =
+            app.fetch(request).assert_status(StatusCode::OK).json_into();
+
+        assert!(response.len() == 2);
+
+        let settings = PaginationQueryParams {
+            page: 1,
+            page_size: Some(20),
+        }
+        .validate(25)
+        .expect("Invalid pagination parameters")
+        .into_selection_settings()
+        .filter(move || PacedTrain::TIMETABLE_ID.eq(timetable.id));
+
+        let list_result = PacedTrain::list_paginated(&mut pool.get_ok(), settings)
+            .await
+            .expect("Failed to fetch paced trains");
+        assert!(list_result.0.len() == 2);
+    }
+
+    #[rstest]
+    async fn get_timetable_paced_trains() {
+        let app = TestAppBuilder::default_app();
+        let pool = app.db_pool();
+
+        let timetable = create_timetable(&mut pool.get_ok()).await;
+
+        let paced_train_1 = simple_paced_train_base();
+        let mut paced_train_2 = simple_paced_train_base();
+        paced_train_2.train_schedule_base.start_time += Duration::minutes(200);
+        paced_train_2.paced.duration = Duration::minutes(120).try_into().unwrap();
+        paced_train_2.paced.step = Duration::seconds(30).try_into().unwrap();
+
+        let paced_trains = vec![paced_train_1, paced_train_2];
+
+        let changesets = paced_trains
+            .into_iter()
+            .map(PacedTrainChangeset::from)
+            .map(|cs| cs.timetable_id(timetable.id))
+            .collect::<Vec<_>>();
+
+        let _paced_trains: Vec<_> = PacedTrain::create_batch(&mut pool.get_ok(), changesets)
+            .await
+            .expect("Failed to create paced trains");
+
+        let request = app.get(format!("/timetable/{}/paced_trains", timetable.id).as_str());
+        let list: ListPacedTrainsResponse =
+            app.fetch(request).assert_status(StatusCode::OK).json_into();
+
+        assert_eq!(list.results.len(), 2);
+    }
+
+    #[rstest]
+    async fn get_not_found_timetable_paced_trains() {
+        let app = TestAppBuilder::default_app();
+        let request = app.get(format!("/timetable/{}/paced_trains", 0).as_str());
+        let response: InternalError = app
+            .fetch(request)
+            .assert_status(StatusCode::NOT_FOUND)
+            .json_into();
+        assert_eq!(&response.error_type, "editoast:timetable:NotFound")
     }
 }
